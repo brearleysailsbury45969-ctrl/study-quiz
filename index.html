@@ -34,6 +34,7 @@
           <option value="random">随机抽题</option>
           <option value="sequential">顺序练习</option>
           <option value="review">只练模糊与不会</option>
+          <option value="favorites">只练收藏题</option>
         </select>
       </div>
       <div class="field">
@@ -45,6 +46,10 @@
         </div>
       </div>
       <button id="start" class="primary" type="button">开始本轮</button>
+      <div class="setup-actions">
+        <button id="submitToday" class="secondary" type="button">提交今天记录给 ChatGPT</button>
+        <button id="exportProgress" class="secondary" type="button">备份本机记录</button>
+      </div>
       <button id="resetProgress" class="text-button" type="button">清空本机学习记录</button>
     </section>
 
@@ -57,14 +62,22 @@
 
       <article class="question-card">
         <div class="question-meta">
-          <span id="questionSubject"></span>
-          <span id="questionNumber"></span>
+          <div>
+            <span id="questionSubject"></span>
+            <span id="questionNumber"></span>
+          </div>
+          <button id="favorite" class="favorite-button" type="button" aria-pressed="false">☆ 收藏</button>
         </div>
         <h2 id="questionTitle"></h2>
         <div id="questionPrompt" class="prompt"></div>
 
         <label class="answer-label" for="userAnswer">先写关键词骨架（可选）</label>
         <textarea id="userAnswer" rows="6" placeholder="不求完整，先写能得分的关键词……"></textarea>
+
+        <label class="answer-label note-label" for="questionNote">这道题的笔记</label>
+        <textarea id="questionNote" class="note-box" rows="3" placeholder="例如：漏了原因②；和赫尔巴特教育性教学原则混淆……"></textarea>
+        <p class="save-hint">笔记和收藏会自动保存在本机；提交报告时会一起带给 ChatGPT。</p>
+
         <button id="reveal" class="primary" type="button">提交并查看答案</button>
 
         <section id="answerArea" class="answer-area hidden">
@@ -88,7 +101,9 @@
       <p class="eyebrow">ROUND COMPLETE</p>
       <h2>这一轮完成了。</h2>
       <div id="summary" class="summary"></div>
-      <button id="again" class="primary" type="button">再来一轮</button>
+      <button id="submitRound" class="primary" type="button">提交本轮给 ChatGPT</button>
+      <p id="reportStatus" class="report-status"></p>
+      <button id="again" class="secondary wide" type="button">再来一轮</button>
     </section>
   </main>
   <script src="app.js"></script>
