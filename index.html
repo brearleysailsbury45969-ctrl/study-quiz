@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f2e9">
-  <title>学习测验 · 333 主观题</title>
+  <title>学习测验</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
       <div>
         <p class="eyebrow">STUDY QUIZ</p>
         <h1>今天只做眼前这几题。</h1>
-        <p class="subtitle">333 主观题 · 提取后再核对答案</p>
+        <p class="subtitle">选择题自动判分 · 主观题提取后核对</p>
       </div>
       <div class="streak" aria-label="今日完成数">
         <strong id="todayCount">0</strong>
@@ -22,6 +22,14 @@
     </header>
 
     <section id="setup" class="panel setup-panel">
+      <div class="field">
+        <label for="questionType">题型</label>
+        <select id="questionType">
+          <option value="all">全部题型</option>
+          <option value="choice">选择题</option>
+          <option value="subjective">简答 / 论述题</option>
+        </select>
+      </div>
       <div class="field">
         <label for="subject">科目</label>
         <select id="subject">
@@ -33,7 +41,7 @@
         <select id="mode">
           <option value="random">随机抽题</option>
           <option value="sequential">顺序练习</option>
-          <option value="review">只练模糊与不会</option>
+          <option value="review">只练错题 / 模糊 / 不会</option>
           <option value="favorites">只练收藏题</option>
         </select>
       </div>
@@ -63,6 +71,7 @@
       <article class="question-card">
         <div class="question-meta">
           <div>
+            <span id="questionTypeBadge"></span>
             <span id="questionSubject"></span>
             <span id="questionNumber"></span>
           </div>
@@ -71,26 +80,33 @@
         <h2 id="questionTitle"></h2>
         <div id="questionPrompt" class="prompt"></div>
 
-        <label class="answer-label" for="userAnswer">先写关键词骨架（可选）</label>
-        <textarea id="userAnswer" rows="6" placeholder="不求完整，先写能得分的关键词……"></textarea>
+        <section id="choiceInput" class="hidden">
+          <div id="choiceOptions" class="choice-options"></div>
+          <button id="submitChoice" class="primary" type="button" disabled>提交选择</button>
+        </section>
+
+        <section id="subjectiveInput">
+          <label class="answer-label" for="userAnswer">先写关键词骨架（可选）</label>
+          <textarea id="userAnswer" rows="6" placeholder="不求完整，先写能得分的关键词……"></textarea>
+          <button id="reveal" class="primary" type="button">提交并查看答案</button>
+        </section>
 
         <label class="answer-label note-label" for="questionNote">这道题的笔记</label>
-        <textarea id="questionNote" class="note-box" rows="3" placeholder="例如：漏了原因②；和赫尔巴特教育性教学原则混淆……"></textarea>
+        <textarea id="questionNote" class="note-box" rows="3" placeholder="例如：漏了原因②；这个选项总和某概念混淆……"></textarea>
         <p class="save-hint">笔记和收藏会自动保存在本机；提交报告时会一起带给 ChatGPT。</p>
-
-        <button id="reveal" class="primary" type="button">提交并查看答案</button>
 
         <section id="answerArea" class="answer-area hidden">
           <div class="answer-heading">
-            <h3>参考答案</h3>
+            <h3 id="answerHeading">参考答案</h3>
             <button id="toggleMine" class="text-button" type="button">对照我的答案</button>
           </div>
           <div id="mine" class="mine hidden"></div>
+          <div id="choiceResult" class="choice-result hidden"></div>
           <div id="referenceAnswer" class="reference-answer"></div>
           <p class="rating-title">这道题现在属于：</p>
           <div class="ratings">
             <button data-rating="known" class="known" type="button">会</button>
-            <button data-rating="unsure" class="unsure" type="button">模糊</button>
+            <button data-rating="unsure" class="unsure" type="button">模糊 / 蒙对</button>
             <button data-rating="unknown" class="unknown" type="button">不会</button>
           </div>
         </section>
