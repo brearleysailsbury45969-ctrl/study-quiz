@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f2e9">
+  <title>学习测验 · 333 主观题</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">STUDY QUIZ</p>
+        <h1>今天只做眼前这几题。</h1>
+        <p class="subtitle">333 主观题 · 提取后再核对答案</p>
+      </div>
+      <div class="streak" aria-label="今日完成数">
+        <strong id="todayCount">0</strong>
+        <span>今日已做</span>
+      </div>
+    </header>
+
+    <section id="setup" class="panel setup-panel">
+      <div class="field">
+        <label for="subject">科目</label>
+        <select id="subject">
+          <option value="all">全部科目</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="mode">范围</label>
+        <select id="mode">
+          <option value="random">随机抽题</option>
+          <option value="sequential">顺序练习</option>
+          <option value="review">只练模糊与不会</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="count">本次题量</label>
+        <div class="stepper">
+          <button id="decrease" type="button" aria-label="减少题量">−</button>
+          <input id="count" type="number" min="1" max="30" value="5" inputmode="numeric">
+          <button id="increase" type="button" aria-label="增加题量">＋</button>
+        </div>
+      </div>
+      <button id="start" class="primary" type="button">开始本轮</button>
+      <button id="resetProgress" class="text-button" type="button">清空本机学习记录</button>
+    </section>
+
+    <section id="quiz" class="quiz hidden" aria-live="polite">
+      <div class="quiz-topline">
+        <button id="quit" class="back-button" type="button">退出</button>
+        <div class="progress-track"><span id="progressBar"></span></div>
+        <span id="progressText">1 / 5</span>
+      </div>
+
+      <article class="question-card">
+        <div class="question-meta">
+          <span id="questionSubject"></span>
+          <span id="questionNumber"></span>
+        </div>
+        <h2 id="questionTitle"></h2>
+        <div id="questionPrompt" class="prompt"></div>
+
+        <label class="answer-label" for="userAnswer">先写关键词骨架（可选）</label>
+        <textarea id="userAnswer" rows="6" placeholder="不求完整，先写能得分的关键词……"></textarea>
+        <button id="reveal" class="primary" type="button">提交并查看答案</button>
+
+        <section id="answerArea" class="answer-area hidden">
+          <div class="answer-heading">
+            <h3>参考答案</h3>
+            <button id="toggleMine" class="text-button" type="button">对照我的答案</button>
+          </div>
+          <div id="mine" class="mine hidden"></div>
+          <div id="referenceAnswer" class="reference-answer"></div>
+          <p class="rating-title">这道题现在属于：</p>
+          <div class="ratings">
+            <button data-rating="known" class="known" type="button">会</button>
+            <button data-rating="unsure" class="unsure" type="button">模糊</button>
+            <button data-rating="unknown" class="unknown" type="button">不会</button>
+          </div>
+        </section>
+      </article>
+    </section>
+
+    <section id="finish" class="panel finish hidden">
+      <p class="eyebrow">ROUND COMPLETE</p>
+      <h2>这一轮完成了。</h2>
+      <div id="summary" class="summary"></div>
+      <button id="again" class="primary" type="button">再来一轮</button>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
