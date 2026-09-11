@@ -6,6 +6,14 @@
   <meta name="theme-color" content="#f6f2e9">
   <title>学习测验</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .timed-hint{margin:-2px 0 14px;padding:10px 12px;border:1px solid var(--line,#ddd6c8);border-radius:12px;background:var(--surface-soft,#faf7f0);font-size:.84rem;line-height:1.55;color:var(--muted,#6f675d)}
+    .timer-box{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:6px 9px;border:1px solid var(--line,#ddd6c8);border-radius:999px;background:var(--surface,#fff);font-size:.78rem;font-variant-numeric:tabular-nums}
+    .timer-box strong{font-size:.94rem}
+    .timer-box.warning{font-weight:700}
+    .timer-box.critical{outline:2px solid currentColor;outline-offset:2px}
+    @media(max-width:640px){.quiz-topline{flex-wrap:wrap}.progress-track{min-width:110px;flex:1}.timer-box{margin-left:auto}}
+  </style>
 </head>
 <body>
   <main class="shell">
@@ -13,7 +21,7 @@
       <div>
         <p class="eyebrow">STUDY QUIZ</p>
         <h1>今天只做眼前这几题。</h1>
-        <p class="subtitle">选择题自动判分 · 主观题提取后核对</p>
+        <p class="subtitle">选择题自动判分 · 四科均衡抽题 · 支持 2 分钟 / 题限时测验</p>
       </div>
       <div class="streak" aria-label="今日完成数">
         <strong id="todayCount">0</strong>
@@ -37,9 +45,10 @@
         </select>
       </div>
       <div class="field">
-        <label for="mode">范围</label>
+        <label for="mode">范围 / 模式</label>
         <select id="mode">
-          <option value="random">随机抽题</option>
+          <option value="random">随机抽题（最近做过的题优先冷却）</option>
+          <option value="timed">限时测验（2 分钟 / 题）</option>
           <option value="sequential">顺序练习</option>
           <option value="review">只练错题 / 模糊 / 不会</option>
           <option value="favorites">只练收藏题</option>
@@ -53,6 +62,7 @@
           <button id="increase" type="button" aria-label="增加题量">＋</button>
         </div>
       </div>
+      <div id="timedHint" class="timed-hint hidden" aria-live="polite"></div>
       <button id="start" class="primary" type="button">开始本轮</button>
       <div class="setup-actions">
         <button id="submitToday" class="secondary" type="button">提交今天记录给 ChatGPT</button>
@@ -65,6 +75,7 @@
       <div class="quiz-topline">
         <button id="quit" class="back-button" type="button">退出</button>
         <div class="progress-track"><span id="progressBar"></span></div>
+        <span id="timerBox" class="timer-box hidden" aria-label="限时测验剩余时间">剩余 <strong id="timerText">00:00</strong></span>
         <span id="progressText">1 / 5</span>
       </div>
 
