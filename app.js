@@ -1,5 +1,7 @@
 const STORAGE_KEY = "study-quiz-progress-v1";
 const REPO = "brearleysailsbury45969-ctrl/study-quiz";
+const TIMED_SECONDS_PER_QUESTION = 120;
+const SUBJECT_ORDER = ["教育学原理", "中国教育史", "外国教育史", "教育心理学"];
 
 const state = {
   questions: [],
@@ -8,7 +10,13 @@ const state = {
   results: { known: 0, unsure: 0, unknown: 0 },
   currentRoundLog: [],
   roundStartedAt: null,
+  roundMode: "random",
+  roundFinished: false,
   selectedChoice: null,
+  timerInterval: null,
+  timerDeadline: null,
+  timedTotalSeconds: 0,
+  timedOut: false,
   progress: loadProgress(),
 };
 
@@ -48,6 +56,17 @@ function localDate(value = new Date()) {
   return value.toLocaleDateString("sv-SE");
 }
 
+function canonicalSubject(question) {
+  const raw = String(question.subject || "").trim();
+  if (SUBJECT_ORDER.includes(raw)) return raw;
+  const source = String(question.source || "");
+  if (source.includes("教原")) return "教育学原理";
+  if (source.includes("中教")) return "中国教育史";
+  if (source.includes("外教")) return "外国教育史";
+  if (source.includes("教心")) return "教育心理学";
+  return raw || "未分类";
+}
+
 function questionKind(question) {
   const raw = String(question.type || "subjective").toLowerCase();
   return ["choice", "mcq", "single_choice", "single-select", "single_select"].includes(raw)
@@ -79,10 +98,10 @@ function choiceOptions(question) {
 
 function correctChoice(question) {
   if (Array.isArray(question.correctValues) && question.correctValues.length) {
-    return String(question.correctValues[0]);
+    return String(question.correctValues[0]).toUpperCase();
   }
   const raw = question.correct ?? question.correctAnswer ?? question.key;
-  if (raw != null) return String(raw);
+  if (raw != null) return String(raw).trim().toUpperCase();
   if (typeof question.answer === "string" && /^[A-D]$/i.test(question.answer.trim())) {
     return question.answer.trim().toUpperCase();
   }
@@ -90,12 +109,16 @@ function correctChoice(question) {
 }
 
 function choiceExplanation(question) {
-  return question.explanation || question.analysis || question.rationale || "";
+  const explanation = question.explanation || question.analysis || question.rationale || "";
+  if (explanation) return explanation;
+  const key = correctChoice(question);
+  const option = choiceOptions(question).find((item) => item.value === key);
+  return key ? `正确答案：${key}${option ? ` · ${option.label}` : ""}` : "暂无解析";
 }
 
 function renderTodayCount() {
   const today = localDate();
-  const count = state.progress.sessions.filter((item) => item.date === today).length;
+  const count = state.progress.sessions.filter((item) => item.date === today && item.answered !== false).length;
   $("#todayCount").textContent = count;
 }
 
@@ -108,23 +131,119 @@ function shuffle(items) {
   return copy;
 }
 
+function recentQuestionIds(limit = 80) {
+  return new Set(state.progress.sessions.slice(-limit).map((item) => item.id));
+}
+
+function cooldownShuffle(items) {
+  const recent = recentQuestionIds();
+  const fresh = shuffle(items.filter((item) => !recent.has(item.id)));
+  const cooling = shuffle(items.filter((item) => recent.has(item.id)));
+  return [...fresh, ...cooling];
+}
+
+function balancedSample(pool, count) {
+  const grouped = new Map();
+  pool.forEach((question) => {
+    const subject = canonicalSubject(question);
+    if (!grouped.has(subject)) grouped.set(subject, []);
+    grouped.get(subject).push(question);
+  });
+
+  const orderedSubjects = [
+    ...SUBJECT_ORDER.filter((subject) => grouped.has(subject)),
+    ...[...grouped.keys()].filter((subject) => !SUBJECT_ORDER.includes(subject)),
+  ];
+  const buckets = new Map(orderedSubjects.map((subject) => [subject, cooldownShuffle(grouped.get(subject))]));
+  const picked = [];
+  while (picked.length < count) {
+    let added = false;
+    for (const subject of orderedSubjects) {
+      const bucket = buckets.get(subject);
+      if (bucket && bucket.length && picked.length < count) {
+        picked.push(bucket.shift());
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+  return picked;
+}
+
+function normalizedTitle(question) {
+  return String(question.title || question.prompt || "")
+    .replace(/\s+/g, "")
+    .replace(/[（）()，,。．·“”‘’：:；;！!？?]/g, "")
+    .toLowerCase();
+}
+
+function dedupeQuestions(items) {
+  const seenIds = new Set();
+  const seenText = new Set();
+  const result = [];
+  items.forEach((raw) => {
+    const question = { ...raw, subject: canonicalSubject(raw) };
+    const id = String(question.id || "");
+    const signature = `${questionKind(question)}|${question.subject}|${normalizedTitle(question)}`;
+    if ((id && seenIds.has(id)) || (normalizedTitle(question) && seenText.has(signature))) return;
+    if (id) seenIds.add(id);
+    if (normalizedTitle(question)) seenText.add(signature);
+    result.push(question);
+  });
+  return result;
+}
+
 function populateSubjects() {
-  const subjects = [...new Set(state.questions.map((q) => q.subject).filter(Boolean))];
+  const select = $("#subject");
+  select.innerHTML = '<option value="all">全部科目</option>';
+  const subjects = [...new Set(state.questions.map((q) => canonicalSubject(q)).filter(Boolean))];
+  subjects.sort((a, b) => {
+    const ai = SUBJECT_ORDER.indexOf(a);
+    const bi = SUBJECT_ORDER.indexOf(b);
+    if (ai >= 0 || bi >= 0) return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+    return a.localeCompare(b, "zh-CN");
+  });
   subjects.forEach((subject) => {
     const option = document.createElement("option");
     option.value = subject;
-    option.textContent = `${subject}（${state.questions.filter((q) => q.subject === subject).length}题）`;
-    $("#subject").append(option);
+    option.textContent = `${subject}（${state.questions.filter((q) => canonicalSubject(q) === subject).length}题）`;
+    select.append(option);
   });
+}
+
+function formatClock(seconds) {
+  const safe = Math.max(0, Math.round(seconds));
+  const h = Math.floor(safe / 3600);
+  const m = Math.floor((safe % 3600) / 60);
+  const s = safe % 60;
+  return h > 0
+    ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+    : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function syncTimedSetup() {
+  const timed = $("#mode").value === "timed";
+  const typeSelect = $("#questionType");
+  const hint = $("#timedHint");
+  if (timed) {
+    typeSelect.value = "choice";
+    typeSelect.disabled = true;
+    const count = Math.max(1, Math.min(30, Number($("#count").value) || 5));
+    hint.textContent = `限时测验按 2 分钟 / 题：${count} 题共 ${formatClock(count * TIMED_SECONDS_PER_QUESTION)}。答题过程中不公布正确答案，交卷后统一结算。`;
+    hint.classList.remove("hidden");
+  } else {
+    typeSelect.disabled = false;
+    hint.classList.add("hidden");
+  }
 }
 
 function startRound() {
   const subject = $("#subject").value;
-  const requestedType = $("#questionType").value;
   const mode = $("#mode").value;
+  const requestedType = mode === "timed" ? "choice" : $("#questionType").value;
   const count = Math.max(1, Math.min(30, Number($("#count").value) || 5));
 
-  let pool = state.questions.filter((q) => subject === "all" || q.subject === subject);
+  let pool = state.questions.filter((q) => subject === "all" || canonicalSubject(q) === subject);
   if (requestedType !== "all") {
     pool = pool.filter((q) => questionKind(q) === requestedType);
   }
@@ -143,35 +262,52 @@ function startRound() {
       : mode === "favorites"
         ? "当前范围还没有收藏题目。"
         : requestedType === "choice"
-          ? "当前范围还没有选择题。之后我可以直接把选择题写进专用题库。"
+          ? "当前范围还没有选择题。"
           : "当前范围没有题目。";
     alert(message);
     return;
   }
 
-  state.round = (mode === "sequential" ? pool : shuffle(pool)).slice(0, count);
+  if (mode === "sequential") {
+    state.round = pool.slice(0, count);
+  } else if (subject === "all") {
+    state.round = balancedSample(pool, count);
+  } else {
+    state.round = cooldownShuffle(pool).slice(0, count);
+  }
+
   state.cursor = 0;
   state.results = { known: 0, unsure: 0, unknown: 0 };
   state.currentRoundLog = [];
   state.roundStartedAt = new Date();
+  state.roundMode = mode;
+  state.roundFinished = false;
+  state.timedOut = false;
   state.selectedChoice = null;
+  state.timedTotalSeconds = mode === "timed" ? state.round.length * TIMED_SECONDS_PER_QUESTION : 0;
+  state.timerDeadline = mode === "timed" ? Date.now() + state.timedTotalSeconds * 1000 : null;
+
   setup.classList.add("hidden");
   finish.classList.add("hidden");
   quiz.classList.remove("hidden");
   renderQuestion();
+  if (mode === "timed") startTimedClock(); else hideTimer();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function renderQuestion() {
   const question = state.round[state.cursor];
+  if (!question) return;
   const kind = questionKind(question);
+  const timed = state.roundMode === "timed";
   state.selectedChoice = null;
 
-  $("#questionTypeBadge").textContent = questionTypeLabel(question);
-  $("#questionSubject").textContent = question.subject || "未分类";
-  $("#questionNumber").textContent = question.number != null ? `第 ${question.number} 题` : "";
+  $("#questionTypeBadge").textContent = timed ? "限时选择题" : questionTypeLabel(question);
+  $("#questionSubject").textContent = canonicalSubject(question);
+  const sourceBits = [question.source, question.number != null ? `第 ${question.number} 题` : ""].filter(Boolean);
+  $("#questionNumber").textContent = sourceBits.join(" · ");
   $("#questionTitle").textContent = question.title || question.prompt || "";
-  $("#questionPrompt").textContent = question.prompt || "";
+  $("#questionPrompt").textContent = question.prompt && question.prompt !== question.title ? question.prompt : "";
   $("#questionNote").value = state.progress.notes[question.id] || "";
   $("#answerArea").classList.add("hidden");
   $("#mine").classList.add("hidden");
@@ -204,6 +340,7 @@ function renderChoiceQuestion(question) {
   $("#toggleMine").classList.add("hidden");
   $("#answerHeading").textContent = "答案与解析";
   $("#submitChoice").disabled = true;
+  $("#submitChoice").textContent = state.roundMode === "timed" ? "提交并下一题" : "提交选择";
   const container = $("#choiceOptions");
   container.innerHTML = "";
 
@@ -234,11 +371,56 @@ function escapeHtml(value) {
 }
 
 function selectChoice(value) {
-  state.selectedChoice = String(value);
+  state.selectedChoice = String(value).toUpperCase();
   document.querySelectorAll(".choice-option").forEach((button) => {
     button.classList.toggle("selected", button.dataset.value === state.selectedChoice);
   });
   $("#submitChoice").disabled = false;
+}
+
+function saveCurrentNote() {
+  const question = state.round[state.cursor];
+  if (!question) return;
+  state.progress.notes[question.id] = $("#questionNote").value;
+  saveProgress();
+}
+
+function recordEvent(question, rating, extra = {}) {
+  const now = new Date();
+  const kind = questionKind(question);
+  state.progress.ratings[question.id] = rating;
+  const event = {
+    id: question.id,
+    rating,
+    type: kind,
+    date: localDate(now),
+    at: now.toISOString(),
+    answered: extra.answered !== false,
+    timed: state.roundMode === "timed",
+    ...extra,
+  };
+
+  if (kind === "choice") {
+    event.selection = extra.selection ?? state.progress.choiceAnswers[question.id] ?? "";
+    event.correctAnswer = extra.correctAnswer ?? correctChoice(question);
+    event.correct = extra.correct ?? state.progress.correctness[question.id] === true;
+  } else {
+    event.answerSnapshot = state.progress.answers[question.id] || "";
+  }
+
+  state.progress.sessions.push(event);
+  state.currentRoundLog.push({
+    ...event,
+    subject: canonicalSubject(question),
+    number: question.number,
+    title: question.title,
+    source: question.source || "",
+    answer: kind === "subjective" ? (state.progress.answers[question.id] || "") : "",
+    note: state.progress.notes[question.id] || "",
+    favorite: Boolean(state.progress.favorites[question.id]),
+  });
+  state.results[rating] += 1;
+  saveProgress();
 }
 
 function submitChoiceAnswer() {
@@ -247,10 +429,21 @@ function submitChoiceAnswer() {
 
   saveCurrentNote();
   const key = correctChoice(question);
-  const isCorrect = key && state.selectedChoice === key;
+  const isCorrect = Boolean(key) && state.selectedChoice === key;
   state.progress.choiceAnswers[question.id] = state.selectedChoice;
   state.progress.correctness[question.id] = Boolean(isCorrect);
   saveProgress();
+
+  if (state.roundMode === "timed") {
+    recordEvent(question, isCorrect ? "known" : "unknown", {
+      selection: state.selectedChoice,
+      correctAnswer: key,
+      correct: isCorrect,
+      answered: true,
+    });
+    advanceQuestion();
+    return;
+  }
 
   document.querySelectorAll(".choice-option").forEach((button) => {
     button.disabled = true;
@@ -267,7 +460,7 @@ function submitChoiceAnswer() {
     ? `${isCorrect ? "答对了" : "答错了"}：你选 ${state.selectedChoice}，正确答案 ${key}。`
     : `你选择了 ${state.selectedChoice}。这道题暂未配置标准答案，请让我检查题库。`;
 
-  $("#referenceAnswer").textContent = choiceExplanation(question) || (key ? `正确答案：${key}` : "暂无解析");
+  $("#referenceAnswer").textContent = choiceExplanation(question);
   $("#answerArea").classList.remove("hidden");
   $("#answerArea").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -288,13 +481,6 @@ function toggleFavorite() {
   renderFavoriteButton();
 }
 
-function saveCurrentNote() {
-  const question = state.round[state.cursor];
-  if (!question) return;
-  state.progress.notes[question.id] = $("#questionNote").value;
-  saveProgress();
-}
-
 function revealAnswer() {
   const question = state.round[state.cursor];
   if (!question || questionKind(question) === "choice") return;
@@ -311,40 +497,20 @@ function revealAnswer() {
 }
 
 function rate(rating) {
+  if (state.roundMode === "timed") return;
   const question = state.round[state.cursor];
-  const now = new Date();
-  const kind = questionKind(question);
+  if (!question) return;
   saveCurrentNote();
-  state.progress.ratings[question.id] = rating;
+  recordEvent(question, rating, questionKind(question) === "choice" ? {
+    selection: state.selectedChoice || state.progress.choiceAnswers[question.id] || "",
+    correctAnswer: correctChoice(question),
+    correct: state.progress.correctness[question.id] === true,
+    answered: true,
+  } : { answered: true });
+  advanceQuestion();
+}
 
-  const event = {
-    id: question.id,
-    rating,
-    type: kind,
-    date: localDate(now),
-    at: now.toISOString(),
-  };
-  if (kind === "choice") {
-    event.selection = state.selectedChoice || state.progress.choiceAnswers[question.id] || "";
-    event.correctAnswer = correctChoice(question);
-    event.correct = state.progress.correctness[question.id] === true;
-  } else {
-    event.answerSnapshot = state.progress.answers[question.id] || "";
-  }
-
-  state.progress.sessions.push(event);
-  state.currentRoundLog.push({
-    ...event,
-    subject: question.subject,
-    number: question.number,
-    title: question.title,
-    answer: kind === "subjective" ? (state.progress.answers[question.id] || "") : "",
-    note: state.progress.notes[question.id] || "",
-    favorite: Boolean(state.progress.favorites[question.id]),
-  });
-  state.results[rating] += 1;
-  saveProgress();
-
+function advanceQuestion() {
   state.cursor += 1;
   if (state.cursor < state.round.length) {
     renderQuestion();
@@ -354,12 +520,84 @@ function rate(rating) {
   }
 }
 
+function startTimedClock() {
+  const box = $("#timerBox");
+  box.classList.remove("hidden");
+  updateTimedClock();
+  stopTimerInterval();
+  state.timerInterval = setInterval(updateTimedClock, 250);
+}
+
+function stopTimerInterval() {
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+}
+
+function hideTimer() {
+  stopTimerInterval();
+  $("#timerBox").classList.add("hidden");
+  $("#timerBox").classList.remove("warning" , "critical");
+}
+
+function updateTimedClock() {
+  if (state.roundMode !== "timed" || !state.timerDeadline || state.roundFinished) return;
+  const remainingMs = state.timerDeadline - Date.now();
+  const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+  $("#timerText").textContent = formatClock(remaining);
+  const box = $("#timerBox");
+  box.classList.toggle("warning", remaining <= Math.max(60, Math.round(state.timedTotalSeconds * 0.2)));
+  box.classList.toggle("critical", remaining <= 30);
+  if (remainingMs <= 0) finishTimedDueToTimeout();
+}
+
+function finishTimedDueToTimeout() {
+  if (state.roundFinished) return;
+  state.timedOut = true;
+  stopTimerInterval();
+  const logged = new Set(state.currentRoundLog.map((item) => item.id));
+  for (let i = state.cursor; i < state.round.length; i += 1) {
+    const question = state.round[i];
+    if (logged.has(question.id)) continue;
+    if (i === state.cursor) {
+      state.progress.notes[question.id] = $("#questionNote").value;
+    }
+    state.progress.correctness[question.id] = false;
+    recordEvent(question, "unknown", {
+      selection: "",
+      correctAnswer: correctChoice(question),
+      correct: false,
+      answered: false,
+      timedOut: true,
+    });
+  }
+  showFinish();
+}
+
+function roundElapsedSeconds(endedAt = new Date()) {
+  if (!state.roundStartedAt) return 0;
+  const raw = Math.max(0, Math.round((endedAt - state.roundStartedAt) / 1000));
+  return state.roundMode === "timed" && state.timedTotalSeconds
+    ? Math.min(raw, state.timedTotalSeconds)
+    : raw;
+}
+
 function showFinish() {
+  if (state.roundFinished) return;
+  state.roundFinished = true;
+  stopTimerInterval();
   const endedAt = new Date();
   const roundRecord = {
     date: localDate(endedAt),
     startedAt: state.roundStartedAt ? state.roundStartedAt.toISOString() : null,
     endedAt: endedAt.toISOString(),
+    mode: state.roundMode,
+    timed: state.roundMode === "timed",
+    timedOut: state.timedOut,
+    allottedSeconds: state.timedTotalSeconds || null,
+    elapsedSeconds: roundElapsedSeconds(endedAt),
+    secondsPerQuestionTarget: state.roundMode === "timed" ? TIMED_SECONDS_PER_QUESTION : null,
     results: { ...state.results },
     items: [...state.currentRoundLog],
   };
@@ -368,25 +606,38 @@ function showFinish() {
 
   quiz.classList.add("hidden");
   finish.classList.remove("hidden");
+  hideTimer();
   const choiceItems = roundRecord.items.filter((item) => item.type === "choice");
+  const answeredItems = choiceItems.filter((item) => item.answered !== false);
   const correctCount = choiceItems.filter((item) => item.correct).length;
-  const cards = [
-    [state.results.known, "会"],
-    [state.results.unsure, "模糊 / 蒙对"],
-    [state.results.unknown, "不会"],
-  ];
-  if (choiceItems.length) cards.unshift([`${correctCount}/${choiceItems.length}`, "选择题正确"]);
+  const unansweredCount = choiceItems.filter((item) => item.answered === false).length;
+  const cards = [];
+  if (choiceItems.length) cards.push([`${correctCount}/${choiceItems.length}`, "选择题正确"]);
+  if (roundRecord.timed) {
+    cards.push([formatClock(roundRecord.elapsedSeconds), roundRecord.timedOut ? "到时交卷" : "实际用时"]);
+    if (answeredItems.length) {
+      cards.push([`${Math.round(roundRecord.elapsedSeconds / answeredItems.length)}秒`, "平均 / 已答题"]);
+    }
+    if (unansweredCount) cards.push([unansweredCount, "未作答"]);
+  } else {
+    cards.push([state.results.known, "会"], [state.results.unsure, "模糊 / 蒙对"], [state.results.unknown, "不会"]);
+  }
   $("#summary").innerHTML = cards
     .map(([value, label]) => `<div><strong>${value}</strong><span>${label}</span></div>`)
     .join("");
-  $("#reportStatus").textContent = "提交后，我就能从 GitHub 读取本轮详情。";
+  $("#reportStatus").textContent = roundRecord.timed
+    ? `本轮标准时间：${formatClock(roundRecord.allottedSeconds)}（2分钟 / 题）。提交后我可以继续按错题和速度给你调下一轮。`
+    : "提交后，我就能从 GitHub 读取本轮详情。";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function returnToSetup() {
+  hideTimer();
+  state.roundFinished = true;
   quiz.classList.add("hidden");
   finish.classList.add("hidden");
   setup.classList.remove("hidden");
+  syncTimedSetup();
 }
 
 function ratingLabel(rating) {
@@ -405,44 +656,51 @@ function appendReportItem(lines, item, index) {
   const kind = item.type || "subjective";
   lines.push(
     "",
-    `### ${index + 1}. ${item.subject || "未分类"}｜${item.number != null ? `第 ${item.number} 题｜` : ""}${item.title || item.id}`,
+    `### ${index + 1}. ${item.subject || "未分类"}｜${item.number != null ? `${item.number}｜` : ""}${item.title || item.id}`,
     `- 题目 ID：${item.id}`,
     `- 题型：${kind === "choice" ? "选择题" : "简答 / 论述题"}`,
-    `- 自评：${ratingLabel(item.rating)}`,
   );
+  if (item.source) lines.push(`- 来源：${item.source}`);
   if (kind === "choice") {
     lines.push(
-      `- 我的选择：${item.selection || "（未记录）"}`,
+      `- 我的选择：${item.answered === false ? "（未作答）" : (item.selection || "（未记录）")}`,
       `- 正确答案：${item.correctAnswer || "（未配置）"}`,
       `- 客观结果：${item.correct ? "正确" : "错误"}`,
     );
   } else {
     lines.push(`- 我的作答：${item.answer || item.answerSnapshot || "（未填写）"}`);
   }
-  lines.push(
-    `- 笔记：${item.note || "（无）"}`,
-    `- 收藏：${item.favorite ? "是" : "否"}`,
-  );
+  if (!item.timed) lines.push(`- 自评：${ratingLabel(item.rating)}`);
+  lines.push(`- 笔记：${item.note || "（无）"}`, `- 收藏：${item.favorite ? "是" : "否"}`);
 }
 
 function buildRoundReport(round) {
   if (!round) return "";
   const total = round.items.length;
-  const durationSeconds = round.startedAt && round.endedAt
-    ? Math.max(0, Math.round((new Date(round.endedAt) - new Date(round.startedAt)) / 1000))
-    : null;
-  const durationText = durationSeconds == null ? "未知" : `${Math.floor(durationSeconds / 60)}分${durationSeconds % 60}秒`;
+  const durationSeconds = round.elapsedSeconds != null
+    ? round.elapsedSeconds
+    : round.startedAt && round.endedAt
+      ? Math.max(0, Math.round((new Date(round.endedAt) - new Date(round.startedAt)) / 1000))
+      : null;
+  const durationText = durationSeconds == null ? "未知" : formatClock(durationSeconds);
   const choiceItems = round.items.filter((item) => item.type === "choice");
   const correctCount = choiceItems.filter((item) => item.correct).length;
+  const unansweredCount = choiceItems.filter((item) => item.answered === false).length;
   const lines = [
     `# 学习测验报告`,
     "",
     `- 日期：${round.date}`,
+    `- 模式：${round.timed ? "限时测验（2分钟/题）" : (round.mode || "普通练习")}`,
     `- 题数：${total}`,
-    `- 会：${round.results.known}；模糊/蒙对：${round.results.unsure}；不会：${round.results.unknown}`,
     `- 用时：${durationText}`,
   ];
-  if (choiceItems.length) lines.push(`- 选择题正确：${correctCount}/${choiceItems.length}`);
+  if (round.timed) {
+    lines.push(`- 标准时长：${formatClock(round.allottedSeconds || total * TIMED_SECONDS_PER_QUESTION)}`);
+    if (round.timedOut) lines.push(`- 状态：到时自动交卷`);
+  } else {
+    lines.push(`- 会：${round.results.known}；模糊/蒙对：${round.results.unsure}；不会：${round.results.unknown}`);
+  }
+  if (choiceItems.length) lines.push(`- 选择题正确：${correctCount}/${choiceItems.length}`, `- 未作答：${unansweredCount}`);
   lines.push("", `## 逐题记录`);
   round.items.forEach((item, index) => appendReportItem(lines, item, index));
   return lines.join("\n");
@@ -451,24 +709,17 @@ function buildRoundReport(round) {
 function buildTodayReport() {
   const today = localDate();
   const events = state.progress.sessions.filter((item) => item.date === today);
-  const lines = [
-    `# 今日学习记录`,
-    "",
-    `- 日期：${today}`,
-    `- 作答次数：${events.length}`,
-    "",
-    `## 逐题记录`,
-  ];
-
+  const lines = [`# 今日学习记录`, "", `- 日期：${today}`, `- 作答/记录次数：${events.length}`, "", `## 逐题记录`];
   events.forEach((event, index) => {
     const question = findQuestion(event.id);
     const kind = event.type || (question ? questionKind(question) : "subjective");
     const item = {
       ...event,
       type: kind,
-      subject: question?.subject,
+      subject: question ? canonicalSubject(question) : undefined,
       number: question?.number,
       title: question?.title,
+      source: question?.source || "",
       answer: event.answerSnapshot ?? state.progress.answers[event.id] ?? "",
       selection: event.selection ?? state.progress.choiceAnswers[event.id] ?? "",
       correctAnswer: event.correctAnswer ?? (question ? correctChoice(question) : ""),
@@ -531,8 +782,10 @@ $("#questionNote").addEventListener("input", saveCurrentNote);
 $("#submitRound").addEventListener("click", submitLatestRound);
 $("#submitToday").addEventListener("click", submitToday);
 $("#exportProgress").addEventListener("click", exportProgress);
-$("#decrease").addEventListener("click", () => $("#count").value = Math.max(1, Number($("#count").value) - 1));
-$("#increase").addEventListener("click", () => $("#count").value = Math.min(30, Number($("#count").value) + 1));
+$("#decrease").addEventListener("click", () => { $("#count").value = Math.max(1, Number($("#count").value) - 1); syncTimedSetup(); });
+$("#increase").addEventListener("click", () => { $("#count").value = Math.min(30, Number($("#count").value) + 1); syncTimedSetup(); });
+$("#count").addEventListener("input", syncTimedSetup);
+$("#mode").addEventListener("change", syncTimedSetup);
 document.querySelectorAll("[data-rating]").forEach((button) => button.addEventListener("click", () => rate(button.dataset.rating)));
 $("#resetProgress").addEventListener("click", () => {
   if (confirm("确定清空这台设备上的全部答题记录、笔记和收藏吗？")) {
@@ -542,6 +795,10 @@ $("#resetProgress").addEventListener("click", () => {
 });
 
 const questionFiles = [
+  "questions/dandan-batch-principles-1.json",
+  "questions/dandan-batch-chinese-1.json",
+  "questions/dandan-batch-foreign-1.json",
+  "questions/dandan-batch-psychology-1.json",
   "questions/chinese-education-history.json",
   "questions/foreign-education-history.json",
   "questions/educational-psychology.json",
@@ -555,10 +812,11 @@ Promise.all(questionFiles.map((path) => fetch(path).then((response) => {
   return response.json();
 })))
   .then((groups) => {
-    state.questions = groups.flat();
+    state.questions = dedupeQuestions(groups.flat());
     populateSubjects();
     renderTodayCount();
+    syncTimedSetup();
   })
   .catch((error) => {
-    setup.innerHTML = `<p>题库加载失败：${error.message}</p><p>请通过网站地址访问，不要直接打开本地 HTML 文件。</p>`;
+    setup.innerHTML = `<p>题库加载失败：${escapeHtml(error.message)}</p><p>请通过网站地址访问，不要直接打开本地 HTML 文件。</p>`;
   });
