@@ -1,0 +1,236 @@
+[
+  {
+    "id": "review-eng-evaporate",
+    "type": "flashcard",
+    "subject": "英语词汇",
+    "title": "evaporate",
+    "prompt": "先说核心义，再想阅读中常见引申。",
+    "answer": "蒸发；逐渐消失。阅读触发：机会、希望、优势等 evaporate → 消失/化为乌有。",
+    "source": "个人错词"
+  },
+  {
+    "id": "review-eng-reluctant",
+    "type": "flashcard",
+    "subject": "英语词汇",
+    "title": "reluctant",
+    "prompt": "先说词义，并给出 be reluctant to do 的意思。",
+    "answer": "不情愿的；勉强的。be reluctant to do = 不愿意/不太情愿做某事。",
+    "source": "个人错词"
+  },
+  {
+    "id": "review-eng-headlong",
+    "type": "flashcard",
+    "subject": "英语词汇",
+    "title": "headlong",
+    "prompt": "这个词不是人名。先说它在阅读里的常见意思。",
+    "answer": "轻率地、仓促地；一头栽下地。rush headlong into... = 仓促/一窝蜂地冲向……",
+    "source": "个人错词"
+  },
+  {
+    "id": "review-eng-overestimate",
+    "type": "flashcard",
+    "subject": "英语词汇",
+    "title": "overestimate",
+    "prompt": "说出词义，并联系“对高等教育价值判断过高”。",
+    "answer": "高估。overestimate the value/benefit of... = 高估……的价值/收益。",
+    "source": "个人错词"
+  },
+  {
+    "id": "review-phy-pv-state-process",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "p-V 图：哪些看路径，哪些只看端点？",
+    "prompt": "先分成过程量和状态量。",
+    "answer": "过程量：功 W、热量 Q，看路径。状态量：内能 U、熵 S，只看初末状态。同一初末态的两条路径，ΔU、ΔS 相同，W、Q 一般不同。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-phy-entropy-temp",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "温度降低，熵一定降低吗？",
+    "prompt": "先回答“是/否”，再说判断依据。",
+    "answer": "不一定。熵是状态函数，要看完整的初末状态；理想气体可由 ΔS = nCv ln(T2/T1) + nR ln(V2/V1) 判断。降温项为负，但膨胀项可能为正。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-phy-polarizer-45",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "自然光 I0 通过两片夹角 45° 的偏振片",
+    "prompt": "先过第一片，再用马吕斯定律。最终光强？",
+    "answer": "第一片后 I1 = I0/2；第二片后 I2 = I1 cos²45° = I0/4。触发器：自然光先减半。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-phy-wire-b",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "无限长直导线磁场",
+    "prompt": "写出距导线 r 处磁感应强度。",
+    "answer": "B = μ0 I / (2πr)。触发器：直导线一定有 2πr。",
+    "source": "普物高频公式"
+  },
+  {
+    "id": "review-phy-loop-center-b",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "圆形电流中心磁场",
+    "prompt": "半径 R、电流 I，圆心 B？",
+    "answer": "B = μ0 I / (2R)。别和无限长直导线 μ0I/(2πR) 混淆。",
+    "source": "普物高频公式"
+  },
+  {
+    "id": "review-phy-loop-current",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "转动电荷形成的等效电流",
+    "prompt": "电荷 q、周期 T，等效电流 I？",
+    "answer": "I = q/T。",
+    "source": "普物高频公式"
+  },
+  {
+    "id": "review-phy-shm-period",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "弹簧振子周期与角频率",
+    "prompt": "写 T、ω、k 与 m 的关系。",
+    "answer": "T = 2π√(m/k)；ω = √(k/m)；k = mω²。",
+    "source": "普物高频公式"
+  },
+  {
+    "id": "review-phy-curvature",
+    "type": "flashcard",
+    "subject": "普物公式",
+    "title": "曲率半径",
+    "prompt": "已知速度 v 和法向加速度 an，ρ = ?",
+    "answer": "ρ = v²/an。错因提醒：分母不是 an²。",
+    "source": "个人错因"
+  },
+  {
+    "id": "review-int-x2a2-32",
+    "type": "flashcard",
+    "subject": "积分公式",
+    "title": "∫ dx / (x²+a²)^(3/2)",
+    "prompt": "直接默写原函数。",
+    "answer": "x / [a²√(x²+a²)] + C。",
+    "source": "指定积分抽查"
+  },
+  {
+    "id": "review-int-x2a2",
+    "type": "flashcard",
+    "subject": "积分公式",
+    "title": "∫ dx / (x²+a²)",
+    "prompt": "直接默写原函数。",
+    "answer": "(1/a) arctan(x/a) + C。",
+    "source": "常用积分"
+  },
+  {
+    "id": "review-int-1overx",
+    "type": "flashcard",
+    "subject": "积分公式",
+    "title": "∫ dx / x",
+    "prompt": "最容易因为绝对值或常数项丢分。",
+    "answer": "ln|x| + C。触发器：对数一定先检查绝对值与 +C。",
+    "source": "常用积分"
+  },
+  {
+    "id": "review-int-linear-ln",
+    "type": "flashcard",
+    "subject": "积分公式",
+    "title": "∫ dx / (A+Bx)",
+    "prompt": "不要直接写 ln(A+Bx)，缺什么？",
+    "answer": "(1/B) ln|A+Bx| + C。触发器：内层导数 B 要除掉。",
+    "source": "个人错因"
+  },
+  {
+    "id": "review-error-collision-energy",
+    "type": "flashcard",
+    "subject": "物理错因",
+    "title": "“掉下来粘住”时，能不能跨碰撞机械能守恒？",
+    "prompt": "先判断碰撞类型，再选守恒律。",
+    "answer": "不能。粘住是完全非弹性碰撞，碰撞瞬间优先用动量守恒；碰撞前后的机械能一般不守恒。碰撞后共同运动阶段再判断是否可用机械能。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-error-spring-gravity",
+    "type": "flashcard",
+    "subject": "物理错因",
+    "title": "物块继续向下压弹簧到最低点，能量式最容易漏什么？",
+    "prompt": "物体向下还有位移。",
+    "answer": "最容易漏重力做功/重力势能变化。不能只写“弹簧力做功 = 动能变化”。先明确系统和起终点，再写完整能量变化。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-error-new-equilibrium",
+    "type": "flashcard",
+    "subject": "物理错因",
+    "title": "弹簧上突然增加质量后，研究振动第一步",
+    "prompt": "不要直接拿原平衡位置算周期相位。",
+    "answer": "先找新的平衡位置，再以新平衡位置为振动中心写简谐运动。问时间时尤其要看初始位移和初速度对应的相位。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-error-target-first",
+    "type": "flashcard",
+    "subject": "物理错因",
+    "title": "做题总绕路：第一触发器是什么？",
+    "prompt": "看到目标量后先做什么？",
+    "answer": "目标量优先入式：能直接几何就不代数消元；能直接代入就不引根式；先写含目标量的主方程，再补中间量。",
+    "source": "长期错因"
+  },
+  {
+    "id": "review-error-b-r-relation",
+    "type": "flashcard",
+    "subject": "物理错因",
+    "title": "长直圆柱载流导体内外 B 与 r 的关系",
+    "prompt": "只说趋势：内部？外部？",
+    "answer": "均匀载流时：内部 B ∝ r；外部 B ∝ 1/r。先判断安培环路包围电流是否随 r 变。",
+    "source": "长期错因"
+  },
+  {
+    "id": "review-error-gauss-twofaces",
+    "type": "flashcard",
+    "subject": "物理错因",
+    "title": "无限大平面用高斯定律最容易漏什么？",
+    "prompt": "柱形高斯面，通量从哪几个面出？",
+    "answer": "两端面都贡献通量，因此常出现 2EA。触发器：无限平面 → 高斯柱 → 先数有通量的面。",
+    "source": "长期错因"
+  },
+  {
+    "id": "review-k2-constructivism",
+    "type": "flashcard",
+    "subject": "科二提取",
+    "title": "简述建构主义学习观",
+    "prompt": "不要只说“重视社会互动”。先提取 3~4 根骨架，再各扩一句。",
+    "answer": "核心骨架：主动建构、已有经验、情境性、社会互动。学习不是被动接受知识，而是学习者基于原有经验主动建构意义；知识理解受具体情境影响；学习也发生在协作、交流和社会互动中。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-k2-activity-course",
+    "type": "flashcard",
+    "subject": "科二提取",
+    "title": "活动课程的特点",
+    "prompt": "不要背“开放性”孤立词。先从“以儿童活动和经验组织课程”推出特点。",
+    "answer": "抓住：以儿童需要和兴趣为中心；以活动和直接经验为主要内容；打破严格学科界限，强调综合性；重视学生主动参与和实践。",
+    "source": "考后复盘"
+  },
+  {
+    "id": "review-k2-motivation",
+    "type": "flashcard",
+    "subject": "科二提取",
+    "title": "怎样激发与维持学习动机？",
+    "prompt": "用“想学—敢学—知道学得怎样—下次还想学”的链条提取。",
+    "answer": "可按四步组织：创设问题情境、激发兴趣和需要；设置适当目标与任务难度，增强成功体验和自我效能；及时反馈并指导正确归因；合理使用表扬奖励与竞争合作，维持后续动机。",
+    "source": "考前提取框架"
+  },
+  {
+    "id": "review-k2-intuition",
+    "type": "flashcard",
+    "subject": "科二提取",
+    "title": "贯彻直观性原则的要求",
+    "prompt": "看到材料中的实物、模型、演示、语言描绘，应反向触发这些要求。",
+    "answer": "正确选择直观手段；直观与讲解相结合；重视言语直观；防止直观的不当与滥用。材料题要先指出教师具体用了哪种直观，再评价是否恰当。",
+    "source": "考后复盘"
+  }
+]
