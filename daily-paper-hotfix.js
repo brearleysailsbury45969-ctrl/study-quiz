@@ -27,3 +27,11 @@
   });
   observer.observe(finish, { attributes: true, attributeFilter: ["class"] });
 })();
+
+(() => {
+  if (document.querySelector('script[src="practice-history.js"]')) return;
+  const script = document.createElement("script");
+  script.src = "practice-history.js";
+  script.async = false;
+  document.body.append(script);
+})();
