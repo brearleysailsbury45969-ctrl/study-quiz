@@ -42,10 +42,21 @@
     typeSelect.append(option);
   }
 
+  const CHAPTERS = [
+    "",
+    "第一章教育基础",
+    "第二章中学课程",
+    "第三章中学教学",
+    "第四章中学生学习心理",
+    "第五章中学生发展心理",
+    "第六章中学生心理辅导",
+    "第七章中学德育",
+    "第八章中学班级管理与教师心理",
+  ];
+  const IMPORTANCE = ["", "一级", "二级", "三级"];
   const flashcardFiles = [
-    "questions/k2-mnemonic-一级.json",
-    "questions/k2-mnemonic-二级.json",
-    "questions/k2-mnemonic-三级.json",
+    "questions/k2-mnemonic-a.json",
+    "questions/k2-mnemonic-b.json",
   ];
 
   Promise.all(flashcardFiles.map((path) => fetch(path).then((response) => {
@@ -53,7 +64,23 @@
     return response.json();
   })))
     .then((groups) => {
-      const flashcards = groups.flat();
+      const flashcards = groups.flat().map(([number, chapterIndex, importanceIndex, title, answer]) => {
+        const chapter = CHAPTERS[chapterIndex] || "科二";
+        const importance = IMPORTANCE[importanceIndex] || "未分级";
+        return {
+          id: `k2-mnemonic-${String(number).padStart(3, "0")}`,
+          type: "flashcard",
+          subject: `科二口诀·${importance}`,
+          number,
+          title,
+          prompt: `${chapter}｜${importance}｜先回忆口诀和得分点，再翻面。`,
+          answer,
+          source: "中学科二大题合集-2026下【小烦口诀】",
+          chapter,
+          importance,
+        };
+      });
+
       const installWhenReady = () => {
         if (!Array.isArray(state.questions) || state.questions.length === 0) {
           window.setTimeout(installWhenReady, 80);
