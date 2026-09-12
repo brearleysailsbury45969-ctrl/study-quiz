@@ -12,6 +12,7 @@
     .timer-box strong{font-size:.94rem}
     .timer-box.warning{font-weight:700}
     .timer-box.critical{outline:2px solid currentColor;outline-offset:2px}
+    .daily-review-button{margin-bottom:12px}
     @media(max-width:640px){.quiz-topline{flex-wrap:wrap}.progress-track{min-width:110px;flex:1}.timer-box{margin-left:auto}}
   </style>
 </head>
@@ -30,6 +31,7 @@
     </header>
 
     <section id="setup" class="panel setup-panel">
+      <button id="dailyReview" class="primary wide daily-review-button" type="button">今日综合复习 · 15 张</button>
       <div class="field">
         <label for="questionType">题型</label>
         <select id="questionType">
