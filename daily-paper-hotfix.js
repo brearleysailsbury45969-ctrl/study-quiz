@@ -35,3 +35,12 @@
   script.async = false;
   document.body.append(script);
 })();
+
+(() => {
+  if (document.querySelector('script[data-mnemonics-333]')) return;
+  const script = document.createElement("script");
+  script.src = "mnemonics-333.js?v=20260913";
+  script.async = false;
+  script.dataset.mnemonics333 = "true";
+  document.body.append(script);
+})();
