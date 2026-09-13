@@ -44,3 +44,12 @@
   script.dataset.mnemonics333 = "true";
   document.body.append(script);
 })();
+
+(() => {
+  if (document.querySelector('script[data-smart-review]')) return;
+  const script = document.createElement("script");
+  script.src = "smart-review.js?v=20260913b";
+  script.async = false;
+  script.dataset.smartReview = "true";
+  document.body.append(script);
+})();
