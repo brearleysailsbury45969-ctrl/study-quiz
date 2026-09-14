@@ -80,3 +80,12 @@
   script.dataset.mnemonicFreeNavigation = "true";
   document.body.append(script);
 })();
+
+(() => {
+  if (document.querySelector('script[data-custom-mnemonic-sync]')) return;
+  const script = document.createElement("script");
+  script.src = "custom-mnemonic-sync.js?v=20260914a";
+  script.async = false;
+  script.dataset.customMnemonicSync = "true";
+  document.body.append(script);
+})();
