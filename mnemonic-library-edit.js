@@ -13,6 +13,18 @@
     return response.json();
   });
 
+  function customCards() {
+    if (typeof state !== "undefined" && state.progress && Array.isArray(state.progress.customMnemonics)) {
+      return state.progress.customMnemonics;
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem("study-quiz-progress-v1")) || {};
+      return Array.isArray(saved.customMnemonics) ? saved.customMnemonics : [];
+    } catch {
+      return [];
+    }
+  }
+
   function overrides() {
     if (typeof state !== "undefined" && state.progress) {
       if (!state.progress.mnemonicOverrides || typeof state.progress.mnemonicOverrides !== "object") {
@@ -52,7 +64,7 @@
     const custom = overrides()[id];
     return {
       mnemonic: custom?.mnemonic ?? source.mnemonic ?? "",
-      content: custom?.content ?? source.answer ?? "",
+      content: custom?.content ?? source.answer ?? source.content ?? "",
       customized: Boolean(custom),
     };
   }
@@ -117,10 +129,10 @@
       if (!id) return;
       const store = overrides();
       if (!store[id]) return;
-      if (!confirm("恢复成资料里的原口诀和原内容吗？")) return;
+      if (!confirm("恢复成这张卡最初保存的口诀和内容吗？")) return;
       delete store[id];
       const source = cardMap.get(id) || {};
-      syncCopies(id, source.mnemonic || "", source.answer || "");
+      syncCopies(id, source.mnemonic || "", source.answer || source.content || "");
       persistFallback(store);
       editor.classList.add("hidden");
       applyDetail();
@@ -187,10 +199,21 @@
   document.addEventListener("change", (event) => {
     if (event.target.matches?.("#mn333Subject")) scheduleApply();
   });
+  document.addEventListener("mn333:detail-shown", (event) => {
+    const card = event.detail?.card;
+    if (card?.id) cardMap.set(card.id, card);
+    scheduleApply();
+  });
+  document.addEventListener("mn333:custom-updated", (event) => {
+    const card = event.detail?.card;
+    if (card?.id) cardMap.set(card.id, card);
+    scheduleApply();
+  });
 
   Promise.all(FILES.map(loadJson))
     .then((groups) => {
       groups.flat().forEach((card) => cardMap.set(card.id, card));
+      customCards().forEach((card) => cardMap.set(card.id, card));
       scheduleApply();
     })
     .catch((error) => console.error("333口诀库编辑数据加载失败：", error));
