@@ -62,3 +62,21 @@
   script.dataset.mnemonicCardControls = "true";
   document.body.append(script);
 })();
+
+(() => {
+  if (document.querySelector('script[data-mnemonic-library-edit]')) return;
+  const script = document.createElement("script");
+  script.src = "mnemonic-library-edit.js?v=20260914a";
+  script.async = false;
+  script.dataset.mnemonicLibraryEdit = "true";
+  document.body.append(script);
+})();
+
+(() => {
+  if (document.querySelector('script[data-mnemonic-free-navigation]')) return;
+  const script = document.createElement("script");
+  script.src = "mnemonic-free-navigation.js?v=20260914a";
+  script.async = false;
+  script.dataset.mnemonicFreeNavigation = "true";
+  document.body.append(script);
+})();
