@@ -62,14 +62,15 @@
 
   function installCustomIntoPractice(customCards = allCustomCards()) {
     if (!Array.isArray(state.questions)) return;
+    const existingIds = new Set(state.questions.map((item) => item?.id).filter(Boolean));
     const normalized = customCards.map((card) => ({
       ...card,
       type: "flashcard",
       reviewCollection: COLLECTION,
       prompt: `${card.source || "我的口诀"}｜先只看题目回忆；先展开口诀，再展开口诀内容。`,
       mnemonicContent: card.answer || "",
-    }));
-    state.questions = dedupeQuestions([...state.questions, ...normalized]);
+    })).filter((card) => !existingIds.has(card.id));
+    if (normalized.length) state.questions = [...state.questions, ...normalized];
     if (typeof populateSubjects === "function") populateSubjects();
   }
 
