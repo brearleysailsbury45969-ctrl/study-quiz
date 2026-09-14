@@ -6,8 +6,12 @@
     "questions/333-mnemonics-psychology.json",
     "questions/333-mnemonics-dense-old.json",
   ];
+  const VIRTUAL_SUBJECT = "333口诀";
   const DAY_MS = 24 * 60 * 60 * 1000;
   const baseCooldownShuffle = cooldownShuffle;
+  const basePopulateSubjects = populateSubjects;
+  const baseStartRound = startRound;
+  let mnemonicCardIds = new Set();
 
   function loadJson(path) {
     return fetch(path).then((response) => {
@@ -26,8 +30,74 @@
       prompt: card.prompt || `${card.source || "333口诀"}｜先只看题目回忆；翻面后核对口诀和得分点。`,
       answer: parts.join("\n\n") || "（原资料没有补充展开内容）",
       reviewSource: card.source || "333口诀",
+      reviewCollection: VIRTUAL_SUBJECT,
     };
   }
+
+  function is333Mnemonic(card) {
+    return Boolean(card) && (card.reviewCollection === VIRTUAL_SUBJECT || mnemonicCardIds.has(card.id));
+  }
+
+  function ensureMnemonicSubjectOption() {
+    const select = document.querySelector("#subject");
+    if (!select) return;
+    const count = state.questions.filter(is333Mnemonic).length;
+    let option = select.querySelector(`option[value="${VIRTUAL_SUBJECT}"]`);
+    if (!count) {
+      option?.remove();
+      return;
+    }
+    if (!option) {
+      option = document.createElement("option");
+      option.value = VIRTUAL_SUBJECT;
+      select.append(option);
+    }
+    option.textContent = `${VIRTUAL_SUBJECT}（${count}张｜自动复习）`;
+  }
+
+  populateSubjects = function populateSubjectsWithMnemonicCollection() {
+    const previous = document.querySelector("#subject")?.value || "all";
+    basePopulateSubjects();
+    ensureMnemonicSubjectOption();
+    const select = document.querySelector("#subject");
+    if (select && [...select.options].some((option) => option.value === previous)) {
+      select.value = previous;
+    }
+  };
+
+  startRound = function startRoundWithMnemonicCollection() {
+    const subjectSelect = document.querySelector("#subject");
+    if (!subjectSelect || subjectSelect.value !== VIRTUAL_SUBJECT) {
+      return baseStartRound();
+    }
+
+    const typeSelect = document.querySelector("#questionType");
+    const modeSelect = document.querySelector("#mode");
+    const originalQuestions = state.questions;
+    const mnemonicQuestions = originalQuestions.filter(is333Mnemonic);
+
+    if (!mnemonicQuestions.length) {
+      alert("333口诀还没有加载完成，请稍等一下再试。");
+      return;
+    }
+
+    if (modeSelect?.value === "timed") {
+      modeSelect.value = "random";
+      syncTimedSetup();
+    }
+    if (typeSelect) typeSelect.value = "flashcard";
+
+    state.questions = mnemonicQuestions;
+    subjectSelect.value = "all";
+    try {
+      return baseStartRound();
+    } finally {
+      state.questions = originalQuestions;
+      populateSubjects();
+      subjectSelect.value = VIRTUAL_SUBJECT;
+      if (typeSelect) typeSelect.value = "flashcard";
+    }
+  };
 
   function eventsFor(id) {
     return (state.progress?.sessions || [])
@@ -102,9 +172,20 @@
   const dailyButton = document.querySelector("#dailyReview");
   if (dailyButton) dailyButton.textContent = "今日智能复习 · 15 张";
 
+  const subjectSelect = document.querySelector("#subject");
+  subjectSelect?.addEventListener("change", () => {
+    if (subjectSelect.value !== VIRTUAL_SUBJECT) return;
+    const typeSelect = document.querySelector("#questionType");
+    const modeSelect = document.querySelector("#mode");
+    if (modeSelect?.value === "timed") modeSelect.value = "random";
+    if (typeSelect) typeSelect.value = "flashcard";
+    syncTimedSetup();
+  });
+
   Promise.all(REVIEW_FILES.map(loadJson))
     .then((groups) => {
       const reviewCards = groups.flat().map(practiceCard);
+      mnemonicCardIds = new Set(reviewCards.map((card) => card.id));
 
       const installWhenReady = () => {
         if (!Array.isArray(state.questions) || state.questions.length === 0) {
