@@ -37,9 +37,18 @@
 })();
 
 (() => {
+  if (document.querySelector('script[data-seed-333-images]')) return;
+  const script = document.createElement("script");
+  script.src = "seed-333-images.js?v=20260914a";
+  script.async = false;
+  script.dataset.seed333Images = "true";
+  document.body.append(script);
+})();
+
+(() => {
   if (document.querySelector('script[data-mnemonics-333]')) return;
   const script = document.createElement("script");
-  script.src = "mnemonics-333.js?v=20260914f";
+  script.src = "mnemonics-333.js?v=20260914g";
   script.async = false;
   script.dataset.mnemonics333 = "true";
   document.body.append(script);
@@ -84,7 +93,7 @@
 (() => {
   if (document.querySelector('script[data-custom-mnemonic-sync]')) return;
   const script = document.createElement("script");
-  script.src = "custom-mnemonic-sync.js?v=20260914a";
+  script.src = "custom-mnemonic-sync.js?v=20260914b";
   script.async = false;
   script.dataset.customMnemonicSync = "true";
   document.body.append(script);
