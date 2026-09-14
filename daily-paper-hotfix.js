@@ -98,3 +98,12 @@
   script.dataset.customMnemonicSync = "true";
   document.body.append(script);
 })();
+
+(() => {
+  if (document.querySelector('script[data-mnemonic-round-resume]')) return;
+  const script = document.createElement("script");
+  script.src = "mnemonic-round-resume.js?v=20260914a";
+  script.async = false;
+  script.dataset.mnemonicRoundResume = "true";
+  document.body.append(script);
+})();
