@@ -48,7 +48,7 @@
 (() => {
   if (document.querySelector('script[data-smart-review]')) return;
   const script = document.createElement("script");
-  script.src = "smart-review.js?v=20260914a";
+  script.src = "smart-review.js?v=20260914c";
   script.async = false;
   script.dataset.smartReview = "true";
   document.body.append(script);
