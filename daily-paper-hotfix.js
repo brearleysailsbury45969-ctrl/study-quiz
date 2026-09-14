@@ -39,7 +39,7 @@
 (() => {
   if (document.querySelector('script[data-mnemonics-333]')) return;
   const script = document.createElement("script");
-  script.src = "mnemonics-333.js?v=20260914e";
+  script.src = "mnemonics-333.js?v=20260914f";
   script.async = false;
   script.dataset.mnemonics333 = "true";
   document.body.append(script);
