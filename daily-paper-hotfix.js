@@ -39,7 +39,7 @@
 (() => {
   if (document.querySelector('script[data-mnemonics-333]')) return;
   const script = document.createElement("script");
-  script.src = "mnemonics-333.js?v=20260913";
+  script.src = "mnemonics-333.js?v=20260914e";
   script.async = false;
   script.dataset.mnemonics333 = "true";
   document.body.append(script);
@@ -66,7 +66,7 @@
 (() => {
   if (document.querySelector('script[data-mnemonic-library-edit]')) return;
   const script = document.createElement("script");
-  script.src = "mnemonic-library-edit.js?v=20260914a";
+  script.src = "mnemonic-library-edit.js?v=20260914b";
   script.async = false;
   script.dataset.mnemonicLibraryEdit = "true";
   document.body.append(script);
