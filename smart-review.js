@@ -11,6 +11,7 @@
   const baseCooldownShuffle = cooldownShuffle;
   const basePopulateSubjects = populateSubjects;
   const baseStartRound = startRound;
+  const baseRenderSubjectiveQuestion = renderSubjectiveQuestion;
   let mnemonicCardIds = new Set();
 
   function loadJson(path) {
@@ -21,14 +22,14 @@
   }
 
   function practiceCard(card) {
-    const parts = [];
-    if (card.mnemonic) parts.push(`【口诀】\n${card.mnemonic}`);
-    if (card.answer) parts.push(`【口诀内容】\n${card.answer}`);
+    const originalAnswer = card.answer || "";
     return {
       ...card,
       type: "flashcard",
-      prompt: card.prompt || `${card.source || "333口诀"}｜先只看题目回忆；翻面后核对口诀和得分点。`,
-      answer: parts.join("\n\n") || "（原资料没有补充展开内容）",
+      prompt: card.prompt || `${card.source || "333口诀"}｜先只看题目回忆；先展开口诀，再展开口诀内容。`,
+      answer: originalAnswer,
+      mnemonic: card.mnemonic || "",
+      mnemonicContent: originalAnswer,
       reviewSource: card.source || "333口诀",
       reviewCollection: VIRTUAL_SUBJECT,
     };
@@ -99,12 +100,76 @@
     }
   };
 
-  // app.js bound the original startRound function directly to the button before this patch loaded.
-  // Replace that listener so the virtual “333口诀” subject goes through the wrapper above.
+  // app.js bound the original startRound function directly before this patch loaded.
   const startButton = document.querySelector("#start");
   if (startButton) {
     startButton.removeEventListener("click", baseStartRound);
     startButton.addEventListener("click", startRound);
+  }
+
+  function resetRatingVisibility() {
+    document.querySelector(".rating-title")?.classList.remove("hidden");
+    document.querySelector(".ratings")?.classList.remove("hidden");
+  }
+
+  renderSubjectiveQuestion = function renderSubjectiveWithMnemonicStages(question) {
+    baseRenderSubjectiveQuestion(question);
+    resetRatingVisibility();
+
+    const reveal = document.querySelector("#reveal");
+    if (!reveal) return;
+    reveal.disabled = false;
+    delete reveal.dataset.mnemonicStage;
+    delete reveal.dataset.mnemonicId;
+
+    if (!is333Mnemonic(question)) return;
+
+    reveal.dataset.mnemonicStage = "0";
+    reveal.dataset.mnemonicId = question.id || "";
+    reveal.textContent = "① 展开口诀";
+    document.querySelector("#answerHeading").textContent = "口诀";
+  };
+
+  const revealButton = document.querySelector("#reveal");
+  if (revealButton) {
+    revealButton.addEventListener("click", (event) => {
+      const question = state.round?.[state.cursor];
+      if (!question || !is333Mnemonic(question) || questionKind(question) !== "flashcard") return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (typeof saveCurrentNote === "function") saveCurrentNote();
+
+      const answerArea = document.querySelector("#answerArea");
+      const answerHeading = document.querySelector("#answerHeading");
+      const referenceAnswer = document.querySelector("#referenceAnswer");
+      const ratingTitle = document.querySelector(".rating-title");
+      const ratings = document.querySelector(".ratings");
+      const stage = Number(revealButton.dataset.mnemonicStage || 0);
+
+      if (stage === 0) {
+        answerHeading.textContent = "口诀";
+        referenceAnswer.textContent = question.mnemonic || "（这条原资料没有单列口诀）";
+        answerArea.classList.remove("hidden");
+        ratingTitle?.classList.add("hidden");
+        ratings?.classList.add("hidden");
+        revealButton.dataset.mnemonicStage = "1";
+        revealButton.textContent = "② 展开口诀内容";
+        return;
+      }
+
+      const mnemonicText = question.mnemonic || "（这条原资料没有单列口诀）";
+      const contentText = question.mnemonicContent || question.answer || "（原资料未提供展开内容）";
+      answerHeading.textContent = "口诀 + 口诀内容";
+      referenceAnswer.textContent = `【口诀】\n${mnemonicText}\n\n【口诀内容】\n${contentText}`;
+      answerArea.classList.remove("hidden");
+      ratingTitle?.classList.remove("hidden");
+      ratings?.classList.remove("hidden");
+      revealButton.dataset.mnemonicStage = "2";
+      revealButton.textContent = "✓ 已展开口诀内容";
+      revealButton.disabled = true;
+      answerArea.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, true);
   }
 
   function eventsFor(id) {
