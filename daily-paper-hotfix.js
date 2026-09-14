@@ -57,7 +57,7 @@
 (() => {
   if (document.querySelector('script[data-mnemonic-card-controls]')) return;
   const script = document.createElement("script");
-  script.src = "mnemonic-card-controls.js?v=20260914a";
+  script.src = "mnemonic-card-controls.js?v=20260914b";
   script.async = false;
   script.dataset.mnemonicCardControls = "true";
   document.body.append(script);
