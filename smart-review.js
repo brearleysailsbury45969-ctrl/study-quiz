@@ -99,6 +99,14 @@
     }
   };
 
+  // app.js bound the original startRound function directly to the button before this patch loaded.
+  // Replace that listener so the virtual “333口诀” subject goes through the wrapper above.
+  const startButton = document.querySelector("#start");
+  if (startButton) {
+    startButton.removeEventListener("click", baseStartRound);
+    startButton.addEventListener("click", startRound);
+  }
+
   function eventsFor(id) {
     return (state.progress?.sessions || [])
       .filter((event) => event.id === id && event.answered !== false)
