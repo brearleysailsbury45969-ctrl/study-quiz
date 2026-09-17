@@ -1,1 +1,152 @@
-[]
+[
+  {
+    "id": "eng2-writing-001",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 1,
+    "title": "图表描述｜illustrate",
+    "prompt": "中译英：该柱状图展示了偏好不同旅游方式的年轻人所占的比例。\n要求：尽量使用 illustrate 和 prefer。",
+    "answer": "参考：The bar chart illustrates the proportions of young people who prefer different types of travel.\n\n固定骨架：The chart illustrates the proportion(s) of ... who ...\n防错：proportion 表示单一比例时用单数；多个群体/比例可以用 proportions。who 后面必须有完整谓语。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-002",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 2,
+    "title": "图表描述｜It is evident that",
+    "prompt": "中译英：从图表中可以明显看出，越来越多的年轻人更喜欢城市漫步。\n要求：使用 It is evident from the chart that...",
+    "answer": "参考：It is evident from the chart that an increasing number of young people prefer city walks.\n\n固定骨架：It is evident from the chart that + 完整句子。\n防错：that 后面不能只接名词短语；an increasing number of + 可数名词复数。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-003",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 3,
+    "title": "原因分析｜influence",
+    "prompt": "中译英：个人需求是影响年轻人旅游偏好的主要因素。\n要求：使用 primary factor(s) 和 influence。",
+    "answer": "参考：Personal needs are the primary factors that influence young people's travel preferences.\n\n固定骨架：A is/are the primary factor(s) that influence(s) B.\n防错：factor 的单复数要和 is/are 对应；that 后谓语跟先行词 factor/factors 保持一致。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-004",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 4,
+    "title": "具体原因｜tight schedule and budget",
+    "prompt": "中译英：对于时间紧、预算有限的人来说，这种旅行方式尤其有吸引力。\n要求：使用 a tight schedule and budget。",
+    "answer": "参考：For those who have a tight schedule and budget, this style of travel is particularly attractive.\n\n固定骨架：For those who have ..., ... is particularly attractive.\n防错：those who 后必须接谓语；不要写 those people who are have。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-005",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 5,
+    "title": "正面作用｜relieve stress",
+    "prompt": "中译英：这种活动可以帮助学生缓解压力并放松身心。\n要求：使用 relieve stress。",
+    "answer": "参考：This activity can help students relieve stress and relax both physically and mentally.\n\n固定骨架：A can help sb. do B and do C.\n防错：help sb. 后直接用动词原形；不要写 help students to relieving。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-006",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 6,
+    "title": "趋势预测｜as + 比较级趋势",
+    "prompt": "中译英：随着旅行变得更加便捷和多样，越来越多的人会按照自己的偏好作出选择。\n要求：使用 as 和 an increasing number of。",
+    "answer": "参考：As travel becomes more accessible and diverse, an increasing number of people will make choices based on their personal preferences.\n\n固定骨架：As A becomes more ..., an increasing number of people will ...\n防错：as 后面要有主语和谓语；based on 修饰 choices/decision 时注意位置。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-007",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 7,
+    "title": "建议结尾｜assess advantages and disadvantages",
+    "prompt": "中译英：在作出决定之前，人们有必要充分权衡各种选择的利弊。\n要求：使用 assess the advantages and disadvantages。",
+    "answer": "参考：It is necessary for people to carefully assess the advantages and disadvantages of different options before making a decision.\n\n固定骨架：It is necessary for sb. to do sth. before doing sth.\n防错：before 后若没有新主语，优先用 doing；advantages and disadvantages of ... 搭配固定。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-008",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 8,
+    "title": "动机来源｜stem from",
+    "prompt": "中译英：许多人的选择源于他们放松身心、接触自然的需求。\n要求：使用 stem from。",
+    "answer": "参考：Many people's choices stem from their need for physical and mental relaxation and exposure to nature.\n\n固定骨架：A stems/stem from B.\n防错：单数主语用 stems，复数主语用 stem；need for 后接名词或动名词结构。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-009",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 9,
+    "title": "趋势解释｜growing need",
+    "prompt": "中译英：这一趋势是人们缓解城市生活压力的需求不断增长的自然结果。\n要求：使用 a natural result of 和 the growing need to...",
+    "answer": "参考：This trend is a natural result of the growing need to relieve the stress of city life.\n\n固定骨架：A is a natural result of the growing need to do B.\n防错：need to 后用动词原形；result of 后接名词性成分。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-010",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 10,
+    "title": "作用表达｜have a vital role to play",
+    "prompt": "中译英：乡村旅游在促进当地经济发展方面发挥着重要作用。\n要求：使用 have a vital role to play in。",
+    "answer": "参考：Rural tourism has a vital role to play in promoting the local economy.\n\n固定骨架：A has a vital role to play in doing B.\n防错：in 是介词，后面用 doing；不要写 play an important role to doing。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-011",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 11,
+    "title": "小作文目的｜ignite interest in",
+    "prompt": "中译英：为了激发学生对中国传统文化的兴趣，我们将举办一次文化体验活动。\n要求：使用 To ignite students' interest in...",
+    "answer": "参考：To ignite students' interest in traditional Chinese culture, we will organize a cultural experience activity.\n\n固定骨架：To ignite sb.'s interest in A, sb. will do B.\n防错：interest in 后接名词/动名词；句首 To do 表目的，主句必须有完整主谓。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-012",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 12,
+    "title": "活动介绍｜range from A to B",
+    "prompt": "中译英：此次活动包括多种有趣的内容，从专家讲座到手工体验都有。\n要求：使用 range from A to B。",
+    "answer": "参考：The event will include a variety of interesting activities, ranging from expert lectures to hands-on workshops.\n\n固定骨架：A includes a variety of B, ranging from C to D.\n防错：range from A to B 两端结构尽量平行；这里 lectures 与 workshops 都是名词复数。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-013",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 13,
+    "title": "活动效果｜enable sb. to do",
+    "prompt": "中译英：这次活动能让参与者更深入地感受中国传统文化的魅力。\n要求：使用 enable sb. to do 和 immerse oneself in。",
+    "answer": "参考：This event can enable participants to immerse themselves in the charm of traditional Chinese culture.\n\n固定骨架：A enables sb. to do B.\n防错：enable 后是 sb. + to do；participants 对应反身代词 themselves。",
+    "source": "《英二写作高分突破（高阶作文40篇）》提炼"
+  },
+  {
+    "id": "eng2-writing-014",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 14,
+    "title": "通用正面作用｜be conducive to",
+    "prompt": "中译英：经常锻炼有助于学生的身心健康。\n要求：使用 be conducive to。",
+    "answer": "参考：Regular exercise is conducive to students' physical and mental health.\n\n固定骨架：A is conducive to B.\n防错：to 在这里是介词，后接名词/动名词；不要写 conducive for。",
+    "source": "《英二写作高分突破（高阶作文40篇）》表达库提炼"
+  },
+  {
+    "id": "eng2-writing-015",
+    "type": "subjective",
+    "subject": "英语二作文",
+    "number": 15,
+    "title": "长期影响｜lay a foundation for",
+    "prompt": "中译英：良好的阅读习惯能为学生未来的发展奠定坚实基础。\n要求：使用 lay a solid foundation for。",
+    "answer": "参考：Good reading habits can lay a solid foundation for students' future development.\n\n固定骨架：A can lay a solid foundation for B.\n防错：foundation for 是固定搭配；habits 是复数，若不用 can，谓语应写 lay 而不是 lays。",
+    "source": "《英二写作高分突破（高阶作文40篇）》表达库提炼"
+  }
+]
