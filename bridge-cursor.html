@@ -131,10 +131,15 @@ function insertBreakAtCursor(){
   let pos=(typeof lastCursorPos==="number")?lastCursorPos:box.value.length;
   pos=Math.max(0,Math.min(pos,box.value.length));
 
+  // 记录当前页面和文本框内部的滚动位置，避免手机端插入后跳到底部。
+  const pageX=window.scrollX;
+  const pageY=window.scrollY;
+  const boxScrollTop=box.scrollTop;
+  const boxScrollLeft=box.scrollLeft;
+
   // 如果光标旁边已经有 #，不重复插入。
   if(box.value.charAt(pos)==="#" || box.value.charAt(pos-1)==="#"){
-    box.focus();
-    box.setSelectionRange(pos,pos);
+    try{box.setSelectionRange(pos,pos)}catch(e){}
     return;
   }
 
@@ -142,9 +147,16 @@ function insertBreakAtCursor(){
   lastCursorPos=pos+1;
   localStorage.setItem(KEY_TEXT,box.value);
 
-  // 重新聚焦并把光标放到刚插入的 # 后面。
-  box.focus();
-  box.setSelectionRange(lastCursorPos,lastCursorPos);
+  // 只更新光标位置，不主动 focus；手机端 focus 会把页面强行滚到光标处。
+  try{box.setSelectionRange(lastCursorPos,lastCursorPos)}catch(e){}
+
+  const restoreScroll=()=>{
+    box.scrollTop=boxScrollTop;
+    box.scrollLeft=boxScrollLeft;
+    window.scrollTo(pageX,pageY);
+  };
+  requestAnimationFrame(restoreScroll);
+  setTimeout(restoreScroll,60);
 }
 
 function parse(){
