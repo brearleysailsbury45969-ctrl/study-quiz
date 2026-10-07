@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f2e9">
+<title>句子桥接背诵器</title>
+<style>
+:root{--bg:#f6f2e9;--card:#fffdf8;--text:#1f1d19;--muted:#756f66;--line:#ddd6c8;--soft:#f2ece1;--accent:#2d2923}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:21px;line-height:1.7}
+main{max-width:880px;margin:auto;padding:14px}
+h1{font-size:30px;line-height:1.25;margin:8px 0 10px}
+h2{font-size:25px;margin:0 0 12px}
+p{margin:8px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:13px;font:inherit;line-height:1.65;resize:vertical}
+button,select{font:inherit}
+button{border:1px solid var(--line);border-radius:14px;background:#fff;padding:12px 14px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.weak{background:#fff6f1}
+button:disabled{opacity:.45}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.row button{flex:1;min-width:145px}
+.muted{color:var(--muted);font-size:17px}
+.example{background:var(--soft);border-radius:12px;padding:12px;font-size:19px;word-break:break-word}
+.hidden{display:none!important}
+.prompt{font-size:27px;line-height:1.7;white-space:pre-wrap;padding:4px 0 10px}
+.answer{font-size:27px;line-height:1.7;white-space:pre-wrap;border:2px dashed var(--line);border-radius:15px;padding:15px;min-height:110px;background:#fff}
+.hint{font-size:24px;padding:12px;border-radius:12px;background:var(--soft);margin:10px 0}
+.stats{font-size:17px;color:var(--muted);margin-bottom:8px}
+.hash{font-weight:800}
+select{max-width:100%;padding:8px;border-radius:10px;border:1px solid var(--line);background:#fff}
+@media(max-width:600px){
+  body{font-size:21px} main{padding:10px} h1{font-size:29px} h2{font-size:25px}
+  .prompt,.answer{font-size:26px}.row button{min-width:0;width:100%;flex-basis:100%}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>句子桥接背诵器</h1>
+  <p class="muted">专门训练“这一块结束以后，下一块是什么”。只有你手动放 <span class="hash">#</span> 的地方才算接口。</p>
+
+  <section class="card">
+    <h2>1. 用 # 标出真正会卡的位置</h2>
+    <div class="example">浩然之气是指一种信念指导的情感和意志相混合的一种心理状态或精神境界#这是一股凛然正气#是对自己行为正义性的自觉</div>
+    <p class="muted"># 可以放在句号后、逗号后，甚至一句话中间。不要每句话都切，只切你想练的接口。</p>
+    <textarea id="source" placeholder="把答案粘贴到这里，然后在断点处加入 #"></textarea>
+    <div class="row">
+      <button class="primary" onclick="startOrdered()">顺序开始</button>
+      <button onclick="startRandom()">随机开始</button>
+      <button onclick="startWeakOnly()">只练卡点</button>
+    </div>
+    <div class="row">
+      <button onclick="saveText()">保存文本</button>
+      <button onclick="loadText()">载入上次文本</button>
+      <button onclick="clearWeak()">清空卡点记录</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. 提示设置</h2>
+    <label>上一块显示：
+      <select id="promptMode">
+        <option value="full">完整上一块</option>
+        <option value="tail">只显示末尾 12 个字</option>
+      </select>
+    </label>
+    <br>
+    <label>最小提示长度：
+      <select id="hintLen">
+        <option value="2">2 个字</option>
+        <option value="4" selected>4 个字</option>
+        <option value="6">6 个字</option>
+        <option value="8">8 个字</option>
+      </select>
+    </label>
+  </section>
+
+  <section id="trainer" class="card hidden">
+    <h2>3. 接口训练</h2>
+    <div id="stats" class="stats"></div>
+    <div id="prompt" class="prompt"></div>
+    <div id="miniHint" class="hint hidden"></div>
+    <div id="answer" class="answer">先在脑中提取。真的卡住也没关系。</div>
+
+    <div id="beforeReveal" class="row">
+      <button onclick="showHint()">给我最小提示</button>
+      <button class="primary" onclick="revealAnswer(false)">揭晓核对</button>
+      <button class="weak" onclick="revealAnswer(true)">卡住了</button>
+    </div>
+
+    <div id="afterReveal" class="row hidden">
+      <button class="weak" onclick="retrySame()">卡住了，再练一次</button>
+      <button class="primary" onclick="gotItNext()">接上了，下一个</button>
+    </div>
+
+    <p id="weakInfo" class="muted"></p>
+  </section>
+</main>
+
+<script>
+let blocks=[];
+let pairs=[];
+let queue=[];
+let pos=0;
+let currentMarkedWeak=false;
+const KEY_TEXT="bridge_text_v3";
+const KEY_WEAK="bridge_weak_v3";
+let weakScores=readJSON(KEY_WEAK,{});
+
+function el(id){return document.getElementById(id)}
+function readJSON(k,fallback){try{return JSON.parse(localStorage.getItem(k)||"")||fallback}catch(e){return fallback}}
+function saveWeak(){localStorage.setItem(KEY_WEAK,JSON.stringify(weakScores))}
+function normalize(s){return s.replace(/\r/g,"").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim()}
+function keyOf(p){return p.prev.slice(-40)+"|||"+p.next.slice(0,40)}
+
+function parse(){
+  const raw=normalize(el("source").value);
+  blocks=raw.split("#").map(normalize).filter(Boolean);
+  if(blocks.length<2){alert("至少放一个 #，让它形成两个内容块。");return false}
+  pairs=[];
+  for(let i=0;i<blocks.length-1;i++)pairs.push({prev:blocks[i],next:blocks[i+1],index:i});
+  localStorage.setItem(KEY_TEXT,el("source").value);
+  return true;
+}
+
+function startOrdered(){
+  if(!parse())return;
+  queue=pairs.map((_,i)=>i);pos=0;openTrainer();
+}
+function startRandom(){
+  if(!parse())return;
+  queue=pairs.map((_,i)=>i);
+  for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]]}
+  pos=0;openTrainer();
+}
+function startWeakOnly(){
+  if(!parse())return;
+  queue=pairs.map((p,i)=>({i,s:weakScores[keyOf(p)]||0})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).map(x=>x.i);
+  if(!queue.length){alert("现在还没有卡点记录。");return}
+  pos=0;openTrainer();
+}
+function openTrainer(){
+  el("trainer").classList.remove("hidden");
+  render();
+  el("trainer").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function render(){
+  if(!queue.length)return;
+  if(pos>=queue.length){
+    alert("这一轮完成啦。");
+    pos=0;
+  }
+  const p=pairs[queue[pos]];
+  const mode=el("promptMode").value;
+  const prev=mode==="tail"?"…"+p.prev.slice(-12):p.prev;
+  el("stats").textContent="接口 "+(pos+1)+" / "+queue.length+"　原文第 "+(p.index+1)+" 块 → 第 "+(p.index+2)+" 块";
+  el("prompt").textContent="上一块：\n"+prev+"\n\n→ 下一块从哪里开始？";
+  el("answer").textContent="先在脑中提取。真的卡住也没关系。";
+  el("miniHint").classList.add("hidden");
+  el("beforeReveal").classList.remove("hidden");
+  el("afterReveal").classList.add("hidden");
+  currentMarkedWeak=false;
+  updateWeakInfo();
+}
+function showHint(){
+  const p=pairs[queue[pos]];
+  const n=parseInt(el("hintLen").value,10)||4;
+  el("miniHint").textContent="最小提示："+p.next.slice(0,n)+"……";
+  el("miniHint").classList.remove("hidden");
+}
+function revealAnswer(markWeak){
+  const p=pairs[queue[pos]];
+  if(markWeak){
+    const k=keyOf(p);
+    weakScores[k]=(weakScores[k]||0)+1;
+    currentMarkedWeak=true;
+    saveWeak();
+  }
+  el("answer").textContent=p.next;
+  el("beforeReveal").classList.add("hidden");
+  el("afterReveal").classList.remove("hidden");
+  updateWeakInfo();
+}
+function retrySame(){
+  const p=pairs[queue[pos]];
+  if(!currentMarkedWeak){
+    const k=keyOf(p);
+    weakScores[k]=(weakScores[k]||0)+1;
+    saveWeak();
+  }
+  render();
+}
+function gotItNext(){
+  const p=pairs[queue[pos]];
+  const k=keyOf(p);
+  if(weakScores[k]>0){
+    weakScores[k]=Math.max(0,weakScores[k]-1);
+    saveWeak();
+  }
+  pos++;
+  render();
+}
+function updateWeakInfo(){
+  let count=0;
+  for(const p of pairs)if((weakScores[keyOf(p)]||0)>0)count++;
+  el("weakInfo").textContent="当前文本还有 "+count+" 个已标记卡点。";
+}
+function saveText(){localStorage.setItem(KEY_TEXT,el("source").value);alert("已保存到这个浏览器。")}
+function loadText(){const t=localStorage.getItem(KEY_TEXT);if(!t){alert("还没有保存过文本。");return}el("source").value=t}
+function clearWeak(){if(confirm("确定清空所有卡点记录吗？")){weakScores={};saveWeak();updateWeakInfo()}}
+
+const saved=localStorage.getItem(KEY_TEXT);
+if(saved)el("source").value=saved;
+</script>
+</body>
+</html>
