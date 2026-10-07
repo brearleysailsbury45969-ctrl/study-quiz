@@ -46,7 +46,11 @@ select{max-width:100%;padding:8px;border-radius:10px;border:1px solid var(--line
     <h2>1. 用 # 标出真正会卡的位置</h2>
     <div class="example">浩然之气是指一种信念指导的情感和意志相混合的一种心理状态或精神境界#这是一股凛然正气#是对自己行为正义性的自觉</div>
     <p class="muted"># 可以放在句号后、逗号后，甚至一句话中间。不要每句话都切，只切你想练的接口。</p>
-    <textarea id="source" placeholder="把答案粘贴到这里，然后在断点处加入 #"></textarea>
+    <textarea id="source" placeholder="把答案粘贴到这里，把光标点到想断开的地方，再点下面按钮"></textarea>
+    <div class="row">
+      <button class="primary" type="button" onclick="insertBreakAtCursor()">＋ 在光标处插入断点 #</button>
+    </div>
+    <p class="muted">手机上不用找 # 键：先把光标点到要断开的地方，再点上面的按钮；插入后光标会留在 # 后面，可以继续找下一个断点。</p>
     <div class="row">
       <button class="primary" onclick="startOrdered()">顺序开始</button>
       <button onclick="startRandom()">随机开始</button>
@@ -109,12 +113,39 @@ let currentMarkedWeak=false;
 const KEY_TEXT="bridge_text_v3";
 const KEY_WEAK="bridge_weak_v3";
 let weakScores=readJSON(KEY_WEAK,{});
+let lastCursorPos=0;
 
 function el(id){return document.getElementById(id)}
 function readJSON(k,fallback){try{return JSON.parse(localStorage.getItem(k)||"")||fallback}catch(e){return fallback}}
 function saveWeak(){localStorage.setItem(KEY_WEAK,JSON.stringify(weakScores))}
 function normalize(s){return s.replace(/\r/g,"").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim()}
 function keyOf(p){return p.prev.slice(-40)+"|||"+p.next.slice(0,40)}
+
+function rememberCursor(){
+  const box=el("source");
+  if(typeof box.selectionStart==="number") lastCursorPos=box.selectionStart;
+}
+
+function insertBreakAtCursor(){
+  const box=el("source");
+  let pos=(typeof lastCursorPos==="number")?lastCursorPos:box.value.length;
+  pos=Math.max(0,Math.min(pos,box.value.length));
+
+  // 如果光标旁边已经有 #，不重复插入。
+  if(box.value.charAt(pos)==="#" || box.value.charAt(pos-1)==="#"){
+    box.focus();
+    box.setSelectionRange(pos,pos);
+    return;
+  }
+
+  box.value=box.value.slice(0,pos)+"#"+box.value.slice(pos);
+  lastCursorPos=pos+1;
+  localStorage.setItem(KEY_TEXT,box.value);
+
+  // 重新聚焦并把光标放到刚插入的 # 后面。
+  box.focus();
+  box.setSelectionRange(lastCursorPos,lastCursorPos);
+}
 
 function parse(){
   const raw=normalize(el("source").value);
@@ -212,8 +243,15 @@ function saveText(){localStorage.setItem(KEY_TEXT,el("source").value);alert("已
 function loadText(){const t=localStorage.getItem(KEY_TEXT);if(!t){alert("还没有保存过文本。");return}el("source").value=t}
 function clearWeak(){if(confirm("确定清空所有卡点记录吗？")){weakScores={};saveWeak();updateWeakInfo()}}
 
+const sourceBox=el("source");
+["click","keyup","input","select","touchend"].forEach(evt=>{
+  sourceBox.addEventListener(evt,rememberCursor);
+});
+sourceBox.addEventListener("focus",rememberCursor);
+
 const saved=localStorage.getItem(KEY_TEXT);
-if(saved)el("source").value=saved;
+if(saved)sourceBox.value=saved;
+lastCursorPos=sourceBox.value.length;
 </script>
 </body>
 </html>
