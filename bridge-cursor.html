@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f6f2e9">
-<title>句子桥接背诵器 · 光标断点版</title>
+<title>句子桥接背诵器 · 锁定断点版</title>
 <style>
 :root{--bg:#f6f2e9;--card:#fffdf8;--text:#1f1d19;--muted:#756f66;--line:#ddd6c8;--soft:#f2ece1;--accent:#2d2923}
 *{box-sizing:border-box}
@@ -44,6 +44,46 @@ select{max-width:100%;padding:8px;border-radius:10px;border:1px solid var(--line
   body{font-size:21px} main{padding:8px} h1{font-size:29px} h2{font-size:25px}\n  textarea{min-height:76vh;padding:15px}
   .prompt,.answer{font-size:26px}.row button{min-width:0;width:100%;flex-basis:100%}
 }
+
+/* 断点编辑：锁定光标时不调用软键盘，练习入口始终可见 */
+.editor-topbar{display:none}
+.editor-toolbar{margin-top:10px;display:grid;gap:8px}
+.editor-tools-row{display:flex;gap:8px}
+.editor-tools-row button{flex:1;min-width:0;padding:11px 8px;line-height:1.35;font-size:clamp(16px,4.3vw,20px);font-weight:600}
+.editor-tools-row .break-button{flex:1.1}
+#lockToggle{background:#f2eee7;border-color:#c8bca9}
+#lockToggle.is-locked{background:#e1ebe3;border-color:#91ae98;color:#28543a}
+.editor-action-row button:first-child{background:#f8f5ee}
+.editor-note{font-size:15px;line-height:1.35;text-align:center;color:var(--muted);min-height:20px}
+#source[readonly]{caret-color:#296d50;-webkit-user-select:text;user-select:text;touch-action:pan-y}
+body.source-focus .source-card .editor-topbar{
+  display:flex;position:absolute;inset:0 0 auto;height:calc(61px + env(safe-area-inset-top));
+  padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
+  align-items:center;justify-content:space-between;gap:8px;background:#f7f3eb;
+  border-bottom:1px solid var(--line);z-index:10001
+}
+.editor-brand{display:grid;gap:0;min-width:0}
+.editor-brand strong{font-size:18px;line-height:1.3;white-space:nowrap}
+.editor-brand span{font-size:12px;color:var(--muted);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.editor-exit{font-size:14px;line-height:1.2;white-space:nowrap;padding:9px 10px}
+body.source-focus #source{
+  inset:calc(61px + env(safe-area-inset-top)) 0 calc(154px + env(safe-area-inset-bottom)) 0;
+  width:100%;height:auto;min-height:0;max-height:none;border:0;border-radius:0;
+  padding:16px 16px 28px;line-height:1.75;resize:none;outline:none;
+  -webkit-overflow-scrolling:touch
+}
+body.source-focus .source-card .editor-toolbar{
+  position:absolute;left:0;right:0;bottom:0;z-index:10002;margin:0;
+  padding:10px 10px calc(9px + env(safe-area-inset-bottom));
+  background:#f7f3eb;border-top:1px solid var(--line);box-shadow:0 -5px 22px rgba(0,0,0,.07);
+  gap:7px
+}
+body.source-focus .editor-tools-row button{min-height:47px}
+body.source-focus .editor-note{font-size:13px}
+@media(min-width:700px){
+ body.source-focus .source-card .editor-toolbar{max-width:none}
+ body.source-focus .editor-tools-row button{font-size:20px}
+}
 </style>
 </head>
 <body>
@@ -55,9 +95,24 @@ select{max-width:100%;padding:8px;border-radius:10px;border:1px solid var(--line
     <h2>1. 用 # 标出真正会卡的位置</h2>
     <div class="example">浩然之气是指一种信念指导的情感和意志相混合的一种心理状态或精神境界#这是一股凛然正气#是对自己行为正义性的自觉</div>
     <p class="muted"># 可以放在句号后、逗号后，甚至一句话中间。不要每句话都切，只切你想练的接口。</p>
-    <textarea id="source" placeholder="把答案粘贴到这里，把光标点到想断开的地方，再点下面按钮"></textarea>
-    <div class="row insert-row">
-      <button class="primary" type="button" onclick="insertBreakAtCursor()">＋ 在光标处插入断点 #</button>
+    <div class="editor-topbar">
+      <div class="editor-brand">
+        <strong>句子桥接 · 断点编辑</strong>
+        <span>点正文定位，插入 # 后直接开始练习</span>
+      </div>
+      <button type="button" class="editor-exit" onclick="setSourceFocus(false)">退出全屏</button>
+    </div>
+    <textarea id="source" placeholder="把答案粘贴到这里；锁定后点按文字定位光标，再插入断点 #"></textarea>
+    <div class="editor-toolbar" aria-label="断点编辑工具栏">
+      <div class="editor-tools-row">
+        <button id="lockToggle" type="button" aria-pressed="false" onclick="toggleLockMode()">🔒 锁定光标 · 不弹键盘</button>
+        <button class="primary break-button" type="button" onclick="insertBreakAtCursor()">＋ 插入断点 #</button>
+      </div>
+      <div class="editor-tools-row editor-action-row">
+        <button type="button" onclick="saveText()">保存文本</button>
+        <button type="button" class="primary" onclick="startOrdered()">开始练习 →</button>
+      </div>
+      <div class="editor-note" id="editorStatus" role="status" aria-live="polite">文字会自动保存到当前浏览器</div>
     </div>
     <p class="muted">手机上不用找 # 键：先把光标点到要断开的地方，再点上面的按钮；插入后光标会留在 # 后面，可以继续找下一个断点。</p>
     <div class="row">
@@ -66,7 +121,7 @@ select{max-width:100%;padding:8px;border-radius:10px;border:1px solid var(--line
       <button onclick="startWeakOnly()">只练卡点</button>
     </div>
     <div class="row">
-      <button onclick="saveText()">保存文本</button>
+      <button onclick="setSourceFocus(true)">进入全屏编辑</button>
       <button onclick="loadText()">载入上次文本</button>
       <button onclick="clearWeak()">清空卡点记录</button>
     </div>
@@ -123,6 +178,31 @@ const KEY_TEXT="bridge_text_v3";
 const KEY_WEAK="bridge_weak_v3";
 let weakScores=readJSON(KEY_WEAK,{});
 let lastCursorPos=0;
+let lockMode=false;
+
+function setLockMode(locked){
+  const box=el("source");
+  rememberCursor();
+  lockMode=Boolean(locked);
+  if(lockMode){
+    // Blur before switching to readonly, otherwise Android may leave its keyboard open.
+    box.blur();
+    box.readOnly=true;
+    box.setAttribute("inputmode","none");
+  }else{
+    box.readOnly=false;
+    box.setAttribute("inputmode","text");
+  }
+  const button=el("lockToggle");
+  button.classList.toggle("is-locked",lockMode);
+  button.setAttribute("aria-pressed",String(lockMode));
+  button.textContent=lockMode?"🔓 解锁 · 恢复输入":"🔒 锁定 · 不弹键盘";
+  el("editorStatus").textContent=lockMode
+    ?"已锁定：点击文字定位光标，不会弹出键盘"
+    :"编辑模式：可粘贴或修改文字，自动保存";
+}
+function toggleLockMode(){setLockMode(!lockMode)}
+function showEditorStatus(text){el("editorStatus").textContent=text}
 
 function el(id){return document.getElementById(id)}
 function readJSON(k,fallback){try{return JSON.parse(localStorage.getItem(k)||"")||fallback}catch(e){return fallback}}
@@ -198,9 +278,11 @@ function startWeakOnly(){
   pos=0;openTrainer();
 }
 function openTrainer(){
+  // 退出全屏编辑，才能看见练习区；否则旧的全屏样式会把它隐藏。
+  setSourceFocus(false);
   el("trainer").classList.remove("hidden");
   render();
-  el("trainer").scrollIntoView({behavior:"smooth",block:"start"});
+  requestAnimationFrame(()=>el("trainer").scrollIntoView({behavior:"smooth",block:"start"}));
 }
 function render(){
   if(!queue.length)return;
@@ -263,20 +345,36 @@ function updateWeakInfo(){
   for(const p of pairs)if((weakScores[keyOf(p)]||0)>0)count++;
   el("weakInfo").textContent="当前文本还有 "+count+" 个已标记卡点。";
 }
-function saveText(){localStorage.setItem(KEY_TEXT,el("source").value);alert("已保存到这个浏览器。")}
-function loadText(){const t=localStorage.getItem(KEY_TEXT);if(!t){alert("还没有保存过文本。");return}el("source").value=t}
+function saveText(){
+  localStorage.setItem(KEY_TEXT,el("source").value);
+  showEditorStatus("✓ 已保存到当前浏览器，刷新后仍可载入");
+}
+function loadText(){
+  const t=localStorage.getItem(KEY_TEXT);
+  if(!t){alert("还没有保存过文本。");return}
+  el("source").value=t;
+  lastCursorPos=t.length;
+  showEditorStatus("✓ 已载入上次保存的文本");
+}
 function clearWeak(){if(confirm("确定清空所有卡点记录吗？")){weakScores={};saveWeak();updateWeakInfo()}}
 
 const sourceBox=el("source");
 setSourceFocus(true);
-["click","keyup","input","select","touchend"].forEach(evt=>{
+["click","keyup","input","select","touchend","pointerup"].forEach(evt=>{
   sourceBox.addEventListener(evt,rememberCursor);
 });
 sourceBox.addEventListener("focus",rememberCursor);
+document.addEventListener("selectionchange",()=>{
+  if(document.activeElement===sourceBox)rememberCursor();
+});
+sourceBox.addEventListener("input",()=>{
+  localStorage.setItem(KEY_TEXT,sourceBox.value);
+});
 
 const saved=localStorage.getItem(KEY_TEXT);
 if(saved)sourceBox.value=saved;
 lastCursorPos=sourceBox.value.length;
+setLockMode(false);
 </script>
 </body>
 </html>
