@@ -56,7 +56,26 @@ select{max-width:100%;padding:8px;border-radius:10px;border:1px solid var(--line
 #lockToggle.is-locked{background:#e1ebe3;border-color:#91ae98;color:#28543a}
 .editor-action-row button:first-child{background:#f8f5ee}
 .editor-note{font-size:15px;line-height:1.35;text-align:center;color:var(--muted);min-height:20px}
-#source[readonly]{caret-color:#296d50;-webkit-user-select:text;user-select:text;touch-action:pan-y}
+/* 锁定层与编辑框相互切换：不使用 readonly 的系统光标，它在部分安卓浏览器中不可见。 */
+#lockedView{
+  width:100%;height:72vh;overflow:auto;position:relative;border:1px solid var(--line);
+  border-radius:14px;background:#fff;padding:13px;font:inherit;line-height:1.65;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;
+  cursor:text
+}
+#lockedTextWrap{position:relative;min-height:1.65em}
+#lockedText{
+  white-space:pre-wrap;overflow-wrap:break-word;word-break:break-word;
+  -webkit-user-select:none;user-select:none
+}
+#lockedCaret{
+  position:absolute;top:0;left:0;width:2.5px;height:1.65em;min-height:28px;
+  border-radius:3px;background:#1d8761;pointer-events:none;
+  box-shadow:0 0 0 1px rgba(29,135,97,.06);
+  animation:locked-caret-blink 1.1s steps(1,end) infinite
+}
+@keyframes locked-caret-blink{50%{opacity:0}}
+@media(prefers-reduced-motion:reduce){#lockedCaret{animation:none}}
 body.source-focus .source-card .editor-topbar{
   display:flex;position:absolute;inset:0 0 auto;height:calc(61px + env(safe-area-inset-top));
   padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
@@ -67,12 +86,15 @@ body.source-focus .source-card .editor-topbar{
 .editor-brand strong{font-size:18px;line-height:1.3;white-space:nowrap}
 .editor-brand span{font-size:12px;color:var(--muted);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .editor-exit{font-size:14px;line-height:1.2;white-space:nowrap;padding:9px 10px}
-body.source-focus #source{
+body.source-focus #source,
+body.source-focus #lockedView{
+  position:absolute;
   inset:calc(61px + env(safe-area-inset-top)) 0 var(--editor-toolbar-height, calc(154px + env(safe-area-inset-bottom))) 0;
   width:100%;height:auto;min-height:0;max-height:none;border:0;border-radius:0;
-  padding:16px 16px 28px;line-height:1.75;resize:none;outline:none;
+  padding:16px 16px 28px;font-size:22px;line-height:1.75;outline:none;
   -webkit-overflow-scrolling:touch
 }
+body.source-focus #source{resize:none}
 body.source-focus .source-card .editor-toolbar{
   position:absolute;left:0;right:0;bottom:0;z-index:10002;margin:0;
   padding:10px 10px calc(9px + env(safe-area-inset-bottom));
@@ -104,6 +126,9 @@ body.source-focus .editor-note{font-size:13px}
       <button type="button" class="editor-exit" onclick="setSourceFocus(false)">退出全屏</button>
     </div>
     <textarea id="source" placeholder="把答案粘贴到这里；锁定后点按文字定位光标，再插入断点 #"></textarea>
+    <div id="lockedView" class="hidden" role="textbox" aria-label="锁定的背诵原文，点按文字定位断点" aria-readonly="true" tabindex="0">
+      <div id="lockedTextWrap"><span id="lockedText"></span><span id="lockedCaret" aria-hidden="true"></span></div>
+    </div>
     <div class="editor-toolbar" aria-label="断点编辑工具栏">
       <div class="editor-tools-row">
         <button id="lockToggle" type="button" aria-pressed="false" onclick="toggleLockMode()">🔒 锁定光标 · 不弹键盘</button>
@@ -181,29 +206,95 @@ let weakScores=readJSON(KEY_WEAK,{});
 let lastCursorPos=0;
 let lockMode=false;
 
+// 只在文字编辑状态读取原生 textarea 光标。
+// 锁定时的点击位置由浏览器排版引擎换算，不会唤起软键盘。
 function setLockMode(locked){
   const box=el("source");
-  rememberCursor();
-  lockMode=Boolean(locked);
-  if(lockMode){
-    // Blur before switching to readonly, otherwise Android may leave its keyboard open.
-    box.blur();
-    box.readOnly=true;
-    box.setAttribute("inputmode","none");
+  const view=el("lockedView");
+  const next=Boolean(locked);
+  if(next===lockMode && !next)return;
+  if(!lockMode)rememberCursor();
+  const scrollTop=lockMode?view.scrollTop:box.scrollTop;
+  const scrollLeft=lockMode?view.scrollLeft:box.scrollLeft;
+  lockMode=next;
+  if(next){
+    box.blur(); // 保证先收起已经打开的软键盘
+    drawLockedText();
+    box.classList.add("hidden");
+    view.classList.remove("hidden");
   }else{
-    box.readOnly=false;
-    box.setAttribute("inputmode","text");
+    view.classList.add("hidden");
+    box.classList.remove("hidden");
+    try{box.setSelectionRange(lastCursorPos,lastCursorPos)}catch(e){}
   }
   const button=el("lockToggle");
   button.classList.toggle("is-locked",lockMode);
   button.setAttribute("aria-pressed",String(lockMode));
   button.textContent=lockMode?"🔓 解锁 · 恢复输入":"🔒 锁定 · 不弹键盘";
   el("editorStatus").textContent=lockMode
-    ?"已锁定：点击文字定位光标，不会弹出键盘"
+    ?"已锁定：点按文字显示绿色光标，不弹键盘"
     :"编辑模式：可粘贴或修改文字，自动保存";
+  requestAnimationFrame(()=>{
+    const active=lockMode?view:box;
+    active.scrollTop=scrollTop;
+    active.scrollLeft=scrollLeft;
+    if(lockMode)drawLockedCaret();
+  });
 }
 function toggleLockMode(){setLockMode(!lockMode)}
 function showEditorStatus(text){el("editorStatus").textContent=text}
+
+// 锁定视图只展示原文，不允许编辑，不会触发 Android 输入法。
+function drawLockedText(){
+  const text=el("lockedText");
+  text.textContent=el("source").value || "\u200b";
+  drawLockedCaret();
+}
+function drawLockedCaret(){
+  if(!lockMode)return;
+  const text=el("lockedText");
+  const node=text.firstChild;
+  const caret=el("lockedCaret");
+  const wrap=el("lockedTextWrap");
+  if(!node)return;
+  const index=Math.max(0,Math.min(lastCursorPos,el("source").value.length));
+  const range=document.createRange();
+  range.setStart(node,index);
+  range.collapse(true);
+  const rect=range.getClientRects()[0]||range.getBoundingClientRect();
+  const origin=wrap.getBoundingClientRect();
+  // Range 可能在空白文本处返回零尺寸，起始位置仍保持可见。
+  let left=rect.left-origin.left;
+  let top=rect.top-origin.top;
+  if(!Number.isFinite(left)||!Number.isFinite(top)){left=0;top=0}
+  caret.style.left=Math.max(0,left)+"px";
+  caret.style.top=Math.max(0,top)+"px";
+  caret.style.height=(rect.height>8?rect.height:parseFloat(getComputedStyle(wrap).lineHeight)||36)+"px";
+}
+function selectLockedPosition(event){
+  if(!lockMode)return;
+  const text=el("lockedText");
+  const node=text.firstChild;
+  if(!node)return;
+  let offset=null;
+  // 两个标准接口分别覆盖现代 Chrome 和较旧安卓 WebView。
+  if(document.caretPositionFromPoint){
+    const p=document.caretPositionFromPoint(event.clientX,event.clientY);
+    if(p && p.offsetNode===node)offset=p.offset;
+  }
+  if(offset===null && document.caretRangeFromPoint){
+    const r=document.caretRangeFromPoint(event.clientX,event.clientY);
+    if(r && r.startContainer===node)offset=r.startOffset;
+  }
+  if(offset===null){
+    // 触到段落底部空白区域时，定位到最后一个字符之后。
+    const bounds=text.getBoundingClientRect();
+    offset=event.clientY<bounds.top?0:el("source").value.length;
+  }
+  lastCursorPos=Math.max(0,Math.min(offset,el("source").value.length));
+  drawLockedCaret();
+}
+
 
 function el(id){return document.getElementById(id)}
 function readJSON(k,fallback){try{return JSON.parse(localStorage.getItem(k)||"")||fallback}catch(e){return fallback}}
@@ -215,6 +306,7 @@ function setSourceFocus(on=true){
   document.body.classList.toggle("source-focus",on);
 }
 function rememberCursor(){
+  if(lockMode)return;
   const box=el("source");
   if(typeof box.selectionStart==="number") lastCursorPos=box.selectionStart;
 }
@@ -227,12 +319,15 @@ function insertBreakAtCursor(){
   // 记录当前页面和文本框内部的滚动位置，避免手机端插入后跳到底部。
   const pageX=window.scrollX;
   const pageY=window.scrollY;
-  const boxScrollTop=box.scrollTop;
-  const boxScrollLeft=box.scrollLeft;
+  const active=lockMode?el("lockedView"):box;
+  const boxScrollTop=active.scrollTop;
+  const boxScrollLeft=active.scrollLeft;
 
   // 如果光标旁边已经有 #，不重复插入。
   if(box.value.charAt(pos)==="#" || box.value.charAt(pos-1)==="#"){
-    try{box.setSelectionRange(pos,pos)}catch(e){}
+    if(lockMode)drawLockedCaret();
+    else try{box.setSelectionRange(pos,pos)}catch(e){}
+    showEditorStatus("这里已经有断点 # 了");
     return;
   }
 
@@ -240,13 +335,16 @@ function insertBreakAtCursor(){
   lastCursorPos=pos+1;
   localStorage.setItem(KEY_TEXT,box.value);
 
-  // 只更新光标位置，不主动 focus；手机端 focus 会把页面强行滚到光标处。
+  // 锁定状态直接刷新展示层和绿色光标，不碰键盘。
   try{box.setSelectionRange(lastCursorPos,lastCursorPos)}catch(e){}
+  if(lockMode)drawLockedText();
+  showEditorStatus("✓ 已插入 #，自动保存；可继续点击文字定位");
 
   const restoreScroll=()=>{
-    box.scrollTop=boxScrollTop;
-    box.scrollLeft=boxScrollLeft;
+    active.scrollTop=boxScrollTop;
+    active.scrollLeft=boxScrollLeft;
     window.scrollTo(pageX,pageY);
+    if(lockMode)drawLockedCaret();
   };
   requestAnimationFrame(restoreScroll);
   setTimeout(restoreScroll,60);
@@ -355,6 +453,7 @@ function loadText(){
   if(!t){alert("还没有保存过文本。");return}
   el("source").value=t;
   lastCursorPos=t.length;
+  if(lockMode)drawLockedText();
   showEditorStatus("✓ 已载入上次保存的文本");
 }
 function clearWeak(){if(confirm("确定清空所有卡点记录吗？")){weakScores={};saveWeak();updateWeakInfo()}}
@@ -371,11 +470,20 @@ document.addEventListener("selectionchange",()=>{
 sourceBox.addEventListener("input",()=>{
   localStorage.setItem(KEY_TEXT,sourceBox.value);
 });
+el("lockedView").addEventListener("click",selectLockedPosition);
+el("lockedView").addEventListener("keydown",event=>{
+  // 键盘用户在锁定层也能选择左右位置，不会编辑原文。
+  if(event.key==="ArrowLeft"||event.key==="ArrowRight"){
+    event.preventDefault();
+    lastCursorPos=Math.max(0,Math.min(sourceBox.value.length,lastCursorPos+(event.key==="ArrowLeft"?-1:1)));
+    drawLockedCaret();
+  }
+});
 
 const saved=localStorage.getItem(KEY_TEXT);
 if(saved)sourceBox.value=saved;
-setLockMode(false);
 lastCursorPos=sourceBox.value.length;
+setLockMode(false);
 
 // The mobile toolbar can wrap on narrow screens; always leave enough room for it.
 if(typeof ResizeObserver!=="undefined"){
